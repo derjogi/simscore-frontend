@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 
+
 interface OutputItem {
   idea: string;
   similarity: number;
@@ -13,7 +14,9 @@ export default function Home() {
 
   const [input, setInput] = useState("");
   const [output, setOutput] = useState<OutputItem[]>([]);
-
+  const [plot_html, setPlotHtml] = useState<string>();
+  const [plot_png, setPlotPng] = useState<string>();
+  
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     const response = await fetch("/api/process", {
@@ -27,7 +30,12 @@ export default function Home() {
       }),
     })
      .then((res) => res.json())
-     .then((data) => setOutput(data.message));
+     .then((data) => {
+        setOutput(data.message)
+        setPlotHtml(data.plot_html)
+        setPlotPng(data.plot_png)
+      }
+    );
   };
 
   return (
@@ -67,6 +75,8 @@ export default function Home() {
         <hr />
         <div className="pt-4 space-y-2">
           <h2>Results:</h2>
+          <div className="flex justify-center"><img src={plot_png}/></div>
+          <div className="flex justify-center" dangerouslySetInnerHTML={{__html: plot_html}}></div>
           <div className="space-y-2">
             {output.map((item, index) => (
               <div key={index} className="flex justify-between">
