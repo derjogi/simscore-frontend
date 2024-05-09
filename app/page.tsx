@@ -76,7 +76,6 @@ export default function Home() {
         <div className="pt-4 space-y-2">
           <h2>Results:</h2>
           <div className="flex justify-center"><img src={plot_png}/></div>
-          <div className="flex justify-center" dangerouslySetInnerHTML={{__html: plot_html}}></div>
           <div className="space-y-2">
             {output.map((item, index) => (
               <div key={index} className="flex justify-between">
