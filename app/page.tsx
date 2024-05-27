@@ -3,6 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import BubbleChart from "./components/BubbleChart";
+import Chart from "chart.js/auto";
+import { CategoryScale } from "chart.js";
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
+import { Doughnut } from "react-chartjs-2";
 
 
 interface OutputItem {
@@ -16,6 +21,8 @@ export default function Home() {
   const [output, setOutput] = useState<OutputItem[]>([]);
   const [plot_html, setPlotHtml] = useState<string>();
   const [plot_png, setPlotPng] = useState<string>();
+
+  Chart.register(CategoryScale);
   
   const handleSubmit = async (e: any) => {
     e.preventDefault();
@@ -75,6 +82,17 @@ export default function Home() {
         <hr />
         <div className="pt-4 space-y-2">
           <h2>Results:</h2>
+          <div>As JS Chart from chart.js:
+            <BubbleChart />
+          </div>
+          <div>
+            <p>As HTML....:</p>
+            <div dangerouslySetInnerHTML={{ __html: plot_html }} />
+          </div>
+          <div>
+            <p>As png:</p>
+            {plot_png}
+          </div>
           <div className="flex justify-center"><img src={plot_png}/></div>
           <div className="space-y-2">
             {output.map((item, index) => (
