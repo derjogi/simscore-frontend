@@ -1,3 +1,4 @@
+import os
 from typing import List
 from pathlib import Path
 import numpy as np
@@ -29,7 +30,8 @@ class Analyzer:
     The class provides a convenient `process_all()` method that runs all the analysis steps in sequence.
     """
     def __init__(self, ideas: List[str], vectorizer):
-        self.ideas = ideas
+        self.ideas = ideas  # these ones we modify & preprocess, i.e. remove punctuation, lemmatize etc...
+        self.original_ideas = ideas
         self.vectorizer = vectorizer
 
     def preprocess_ideas(self):
@@ -125,6 +127,19 @@ class Analyzer:
         print('Distance to centroid: (-1 * x): ')
         for row in self.distance_to_centroid:
             print("{:.2f}".format(*row), sep='')
+
+    def print_ideas_similarity_and_distance(self):
+        vectorizer_name = self.vectorizer.__class__.__name__
+        file_path = os.path.join(os.getcwd(), vectorizer_name + '_ideas_similarity_distance.tsv')
+        with open(file_path, 'w') as f:
+            header = "#\tIdea\tCos Similarity\tDist to centroid\n"
+            f.write(header)
+            print(header)
+            for i, idea in enumerate(self.original_ideas):
+                line = f"{i+1}\t{idea}\t{round(self.cos_similarity[i][0], 2)}\t{round(self.distance_to_centroid[i][0], 2)}\n"
+                f.write(line)
+                print(line)
+        return file_path
 
     def create_scatter_plot(self, seed=RandomState().randint(1, 1000000)):
         # For reproducible results, set seed to a fixed number.
@@ -249,5 +264,5 @@ class Analyzer:
     def process_all(self):
         self.preprocess_ideas()
         self.calculate_similarities()
-        print(f"{type(self.vectorizer)} graph:")
+        print(f"{self.vectorizer.__class__.__name__} graph:")
         self.create_scatter_plot()
