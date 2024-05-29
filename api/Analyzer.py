@@ -128,18 +128,14 @@ class Analyzer:
         for row in self.distance_to_centroid:
             print("{:.2f}".format(*row), sep='')
 
-    def print_ideas_similarity_and_distance(self):
-        vectorizer_name = self.vectorizer.__class__.__name__
-        file_path = os.path.join(os.getcwd(), vectorizer_name + '_ideas_similarity_distance.tsv')
-        with open(file_path, 'w') as f:
-            header = "#\tIdea\tCos Similarity\tDist to centroid\n"
-            f.write(header)
-            print(header)
-            for i, idea in enumerate(self.original_ideas):
-                line = f"{i+1}\t{idea}\t{round(self.cos_similarity[i][0], 2)}\t{round(self.distance_to_centroid[i][0], 2)}\n"
-                f.write(line)
-                print(line)
-        return file_path
+    def get_ideas(self):
+        return self.original_ideas
+
+    def get_similarity(self):
+        return self.cos_similarity
+    
+    def get_distance(self):
+        return self.distance_to_centroid    
 
     def create_scatter_plot(self, seed=RandomState().randint(1, 1000000)):
         # For reproducible results, set seed to a fixed number.
