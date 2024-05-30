@@ -86,8 +86,7 @@ export default function Home() {
             <BubbleChart />
           </div>
           <div>
-            <p>As HTML....:</p>
-            <div dangerouslySetInnerHTML={{ __html: plot_html }} />
+            <p>As HTML....: [TODO]</p>
           </div>
           <div>
             <p>As png:</p>
