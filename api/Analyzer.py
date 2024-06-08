@@ -107,17 +107,28 @@ class Analyzer:
         # Add the centroid as another row/column
         idea_matrix = np.vstack([idea_matrix, centroid])
 
+        # Sort the idea_matrix based on the pairwise distances
+        # we only need this temporarily to then be able to sort the idea_matrix 
+        # according to which ideas _will_ be closest to the centroid. 
+        # Then after sorting, we'll have to create pairwise_distances and others again.
+        temp_pairwise_distance = pairwise_distances(idea_matrix, metric='cosine')
+        sorted_indices = np.argsort(temp_pairwise_distance[:-1, -1])
+        idea_matrix = np.concatenate((idea_matrix[sorted_indices], idea_matrix[-1:]))
+
+        # (also make sure that we keep the order of our ideas array the same)
+        self.original_ideas = [self.original_ideas[i] for i in sorted_indices]
+
         # Calculate similarity & distances
-        self.cos_similarity = cosine_similarity(idea_matrix, centroid.reshape(1, -1))
-        self.pairwise_similarity = cosine_similarity(idea_matrix, idea_matrix)
+        # *Distances* between ideas (including the centroid), used to get the coords on the scatterplot:
         self.pairwise_distance = pairwise_distances(idea_matrix, metric='cosine')
-
-        # Distance of the centroid to each other idea
-        centroid_distance = self.pairwise_distance[-1, :-1]
-
-        # make it so that 0 is 'same' and 1 is very different:
+        # *Similarity* between each idea; for the weight of the connecting lines:
+        self.pairwise_similarity = cosine_similarity(idea_matrix, idea_matrix)
+        
+        # Similarity to centroid:
+        self.cos_similarity = cosine_similarity(idea_matrix, centroid.reshape(1, -1))
+        # make it so that 0 is 'same' and 1 is very different. This is used to calculate the marker size:
         self.distance_to_centroid = 1 - self.cos_similarity
-    
+            
     def print_cosine_similarity(self):
         print('Cosine similarity: ')
         for row in self.cos_similarity:
