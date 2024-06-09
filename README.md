@@ -15,7 +15,7 @@ Analysis of user sentiments using a centroid analysis. For more information, che
 
 ## Interactive Analysis
 If you just want to run an analysis without using the website, feel free to open and play around with this interactive python notebook:
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/derjogi/centroid-paulw-nextjs/HEAD?labpath=%2Fapi%2Fcentroid_plots.ipynb)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/derjogi/centroid-paulw-nextjs/HEAD?labpath=%2Fapi%2Fanalyzer%2Fcentroid_plots.ipynb)
 
 ## Development - Getting Started
 
