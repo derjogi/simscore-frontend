@@ -1,4 +1,8 @@
 /** @type {import('next').NextConfig} */
+
+const PORT_FRONTEND = process.env.PORT_FRONTEND || 3000;
+const PORT_BACKEND = process.env.PORT_BACKEND || 8000;
+
 const nextConfig = {
   rewrites: async () => {
     return [
@@ -6,24 +10,28 @@ const nextConfig = {
         source: "/api/:path*",
         destination:
           process.env.NODE_ENV === "development"
-            ? "http://127.0.0.1:8000/api/:path*"
+            ? `http://127.0.0.1:${PORT_BACKEND}/api/:path*`
             : "/api/",
       },
       {
         source: "/docs",
         destination:
           process.env.NODE_ENV === "development"
-            ? "http://127.0.0.1:8000/docs"
+            ? `http://127.0.0.1:${PORT_BACKEND}/docs`
             : "/api/docs",
       },
       {
         source: "/openapi.json",
         destination:
           process.env.NODE_ENV === "development"
-            ? "http://127.0.0.1:8000/openapi.json"
+            ? `http://127.0.0.1:${PORT_BACKEND}/openapi.json`
             : "/api/openapi.json",
       },
     ];
+  },
+  env: {
+    PORT_FRONTEND: `${PORT_FRONTEND}`,
+    PORT_BACKEND: `${PORT_BACKEND}`,
   },
 };
 

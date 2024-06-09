@@ -16,7 +16,10 @@ export default function Home() {
   
   const handleSubmit = async (e: any) => {
     e.preventDefault();
-    const response = await fetch("/api/process", {
+    const host = "https://" + window.location.hostname + ":" + process.env.PORT_BACKEND
+    console.log(host)
+    const processAPI = host + "/api/process"
+    const response = await fetch("api/process", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
