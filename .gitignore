@@ -38,3 +38,6 @@ next-env.d.ts
 
 # python
 /api/__pycache__
+
+# Other local-only files
+/.local/

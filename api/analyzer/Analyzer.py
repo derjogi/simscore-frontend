@@ -1,4 +1,3 @@
-import os
 from typing import List
 from pathlib import Path
 import numpy as np
@@ -139,16 +138,7 @@ class Analyzer:
         for row in self.distance_to_centroid:
             print("{:.2f}".format(*row), sep='')
 
-    def get_ideas(self):
-        return self.original_ideas
-
-    def get_similarity(self):
-        return self.cos_similarity
-    
-    def get_distance(self):
-        return self.distance_to_centroid    
-
-    def create_scatter_plot(self, seed=RandomState().randint(1, 1000000)):
+    def create_scatter_plot(self, show_plot=False, seed=RandomState().randint(1, 1000000)):
         # For reproducible results, set seed to a fixed number.
         mds = manifold.MDS(n_components=2, dissimilarity='precomputed', random_state=seed)
         print(seed)
@@ -193,8 +183,12 @@ class Analyzer:
         # Set the axis labels and title
         ax.set_title('Distance to Centroid Visualization')
 
-        # Show the plot
-        plt.show()
+        # Make coords accessible
+        self.coords = coords
+
+        if show_plot:
+            # Show the plot
+            plt.show()
 
     def create_heatmap(self):
         fig, ax = plt.subplots(figsize=(8, 6))
@@ -272,4 +266,4 @@ class Analyzer:
         self.preprocess_ideas()
         self.calculate_similarities()
         print(f"{self.vectorizer.__class__.__name__} graph:")
-        self.create_scatter_plot()
+        self.create_scatter_plot(show_plot=False)

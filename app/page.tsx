@@ -1,26 +1,16 @@
 'use client'
 
-import Image from "next/image";
-import Link from "next/link";
 import { useState } from "react";
-import BubbleChart from "./components/BubbleChart";
+import BubbleChart from "../components/BubbleChart";
 import Chart from "chart.js/auto";
 import { CategoryScale } from "chart.js";
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
-import { Doughnut } from "react-chartjs-2";
-
-
-interface OutputItem {
-  idea: string;
-  similarity: number;
-}
+import { PlotData, OutputItem } from "../constants";
 
 export default function Home() {
 
   const [input, setInput] = useState("");
   const [output, setOutput] = useState<OutputItem[]>([]);
-  const [plot_html, setPlotHtml] = useState<string>();
-  const [plot_png, setPlotPng] = useState<string>();
+  const [plotData, setPlotData] = useState<PlotData>();
 
   Chart.register(CategoryScale);
   
@@ -39,8 +29,7 @@ export default function Home() {
      .then((res) => res.json())
      .then((data) => {
         setOutput(data.message)
-        setPlotHtml(data.plot_html)
-        setPlotPng(data.plot_png)
+        setPlotData(data.plot_data)
       }
     );
   };
@@ -79,29 +68,25 @@ export default function Home() {
             Process
           </button>
         </form>
-        <hr />
-        <div className="pt-4 space-y-2">
-          <h2>Results:</h2>
-          <div>As JS Chart from chart.js:
-            <BubbleChart />
+        
+        {plotData &&
+          (<div>
+              <hr />
+              <div className="pt-4 space-y-2">
+                <h2>Results:</h2>
+                  <BubbleChart plotData={plotData} />
+                <div className="space-y-2">
+                  {output.map((item, index) => (
+                    <div key={index} className="flex justify-between">
+                      <span>{item.idea}</span>
+                      <span>Similarity: {item.similarity}</span>
+                    </div>
+                  ))}
+                </div>
+            </div>
           </div>
-          <div>
-            <p>As HTML....: [TODO]</p>
-          </div>
-          <div>
-            <p>As png:</p>
-            {plot_png}
-          </div>
-          <div className="flex justify-center"><img src={plot_png}/></div>
-          <div className="space-y-2">
-            {output.map((item, index) => (
-              <div key={index} className="flex justify-between">
-                <span>{item.idea}</span>
-                <span>Similarity: {item.similarity}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+          )
+        }
       </div>
     </main>
   );
