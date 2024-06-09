@@ -11,7 +11,7 @@
     "dev-backend": "python3 -m uvicorn api.index:app --reload",
     "start": "concurrently \"npm run start-frontend\" \"npm run start-backend\"",
     "start-frontend": "next start -p ${PORT_FRONTEND-3000}",
-    "start-backend": "uvicorn api.index:app --host 0.0.0.0 --port ${PORT_BACKEND-8000}",
+    "start-backend": "uvicorn api.index:app --host 0.0.0.0 --port $PORT",
     "lint": "next lint"
   },
   "dependencies": {
