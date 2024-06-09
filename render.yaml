@@ -1,0 +1,14 @@
+services:
+- type: web
+  name: simscore-frontend
+  branch: main
+  runtime: static
+  rootDir: app
+  buildCommand: npm run build-frontend
+  startCommand: npm run start-frontend
+- type: web
+  name: simscore-backend
+  runtime: python
+  rootDir: api
+  buildCommand: npm run build-backend
+  startCommand: npm run start-backend

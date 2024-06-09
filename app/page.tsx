@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from "react";
-import BubbleChart from "../components/BubbleChart";
+import BubbleChart from "./components/BubbleChart";
 import Chart from "chart.js/auto";
 import { CategoryScale } from "chart.js";
-import { PlotData, OutputItem } from "../constants";
+import { PlotData, OutputItem } from "./constants";
 
 export default function Home() {
 

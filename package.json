@@ -3,13 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "fastapi-dev": "pip3 install -r requirements.txt && python3 -m uvicorn api.index:app --reload",
-    "next-dev": "next dev",
-    "dev": "concurrently \"npm run next-dev\" \"npm run fastapi-dev\"",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "prod": "next build && concurrently \"next start\" \"uvicorn api.index:app --host 0.0.0.0 --port 8000\" "
+    "build": "concurrently \"npm run build-frontend\" \"npm run build-backend\"",
+    "build-frontend": "next build",
+    "build-backend": "pip3 install -r requirements.txt",
+    "dev": "concurrently \"npm run dev-frontend\" \"npm run dev-backend\"",
+    "dev-frontend": "next dev",
+    "dev-backend": "pip3 install -r requirements.txt && python3 -m uvicorn api.index:app --reload",
+    "start": "concurrently \"npm run start-frontend\" \"npm run start-backend\"",
+    "start-frontend": "next start",
+    "start-backend": "uvicorn api.index:app --host 0.0.0.0 --port $PORT",
+    "lint": "next lint"
   },
   "dependencies": {
     "@types/node": "20.2.4",
@@ -18,6 +21,7 @@
     "autoprefixer": "10.4.14",
     "chart.js": "^4.0.0",
     "concurrently": "^8.0.1",
+    "dotenv": "^16.4.5",
     "eslint": "8.41.0",
     "eslint-config-next": "13.4.4",
     "mpld3": "^0.5.10",

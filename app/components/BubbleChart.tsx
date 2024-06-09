@@ -1,5 +1,5 @@
 import Chart from 'chart.js/auto';
-import { PlotData } from '../constants'
+import { PlotData } from "../constants"
 import { Bubble } from "react-chartjs-2";
 
 interface BubbleChartProps {
