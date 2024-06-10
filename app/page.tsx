@@ -19,7 +19,7 @@ export default function Home() {
     const host = "https://" + process.env.BACKEND_URL
     console.log(host)
     const processAPI = host + "/api/process"
-    const response = await fetch("api/process", {
+    const response = await fetch(processAPI, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
