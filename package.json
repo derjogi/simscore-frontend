@@ -5,13 +5,13 @@
   "scripts": {
     "build": "concurrently \"npm run build-frontend\" \"npm run build-backend\"",
     "build-frontend": "next build",
-    "build-backend": "pip3 install -r requirements.txt",
+    "build-backend": "cd api && pip3 install -r requirements.txt",
     "dev": "concurrently \"npm run dev-frontend\" \"npm run dev-backend\"",
     "dev-frontend": "next dev",
-    "dev-backend": "python3 -m uvicorn api.index:app --reload",
+    "dev-backend": "cd api && python3 -m uvicorn index:app --reload",
     "start": "concurrently \"npm run start-frontend\" \"npm run start-backend\"",
     "start-frontend": "next start -p ${PORT_FRONTEND-3000}",
-    "start-backend": "uvicorn api.index:app --host 0.0.0.0 --port $PORT",
+    "start-backend": "cd api && uvicorn index:app --host 0.0.0.0 --port $PORT",
     "lint": "next lint"
   },
   "dependencies": {

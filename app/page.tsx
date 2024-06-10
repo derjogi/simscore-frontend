@@ -16,7 +16,7 @@ export default function Home() {
   
   const handleSubmit = async (e: any) => {
     e.preventDefault();
-    const host = "https://" + process.env.BACKEND_URL
+    const host = process.env.BACKEND_URL
     console.log(host)
     const processAPI = host + "/api/process"
     const response = await fetch(processAPI, {

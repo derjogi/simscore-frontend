@@ -29,8 +29,8 @@ class Analyzer:
     The class provides a convenient `process_all()` method that runs all the analysis steps in sequence.
     """
     def __init__(self, ideas: List[str], vectorizer):
-        self.ideas = ideas  # these ones we modify & preprocess, i.e. remove punctuation, lemmatize etc...
-        self.original_ideas = ideas
+        self.processed_ideas = ideas  # these ones we modify & preprocess, i.e. remove punctuation, lemmatize etc...
+        self.ideas = ideas   # these stay unmodified, but will be sorted by similarity later
         self.vectorizer = vectorizer
 
     def preprocess_ideas(self):
@@ -52,8 +52,8 @@ class Analyzer:
             tokens = [lemmatizer.lemmatize(word) for word in tokens if word.isalpha() and word not in stopwords.words('english')]
             return ' '.join(tokens)
 
-        self.ideas = [preprocess(response) for response in self.ideas]
-        return self.ideas
+        self.processed_ideas = [preprocess(response) for response in self.processed_ideas]
+        return self.processed_ideas
 
     def embedd_ideas(self):
 
@@ -79,7 +79,7 @@ class Analyzer:
                 return np.zeros(100)  # assuming the embedding size is 100
             return np.mean(valid_embeddings, axis=0)
 
-        return np.array([get_sentence_embedding(tokens, embeddings_index) for tokens in self.ideas])
+        return np.array([get_sentence_embedding(tokens, embeddings_index) for tokens in self.processed_ideas])
 
     def calculate_similarities(self):
         """
@@ -93,7 +93,7 @@ class Analyzer:
          * Similarities/Distances between the ideas (pairwise) and between ideas and the centroid
         """
         # Fit and transform the ideas to numerical vectors
-        vectorized_matrix = self.vectorizer.fit_transform(self.ideas)
+        vectorized_matrix = self.vectorizer.fit_transform(self.processed_ideas)
         embedded_matrix = self.embedd_ideas()
         if embedded_matrix is None:
             idea_matrix = vectorized_matrix.toarray()
@@ -115,7 +115,7 @@ class Analyzer:
         idea_matrix = np.concatenate((idea_matrix[sorted_indices], idea_matrix[-1:]))
 
         # (also make sure that we keep the order of our ideas array the same)
-        self.original_ideas = [self.original_ideas[i] for i in sorted_indices]
+        self.ideas = [self.ideas[i] for i in sorted_indices]
 
         # Calculate similarity & distances
         # *Distances* between ideas (including the centroid), used to get the coords on the scatterplot:
@@ -127,29 +127,24 @@ class Analyzer:
         self.cos_similarity = cosine_similarity(idea_matrix, centroid.reshape(1, -1))
         # make it so that 0 is 'same' and 1 is very different. This is used to calculate the marker size:
         self.distance_to_centroid = 1 - self.cos_similarity
-            
-    def print_cosine_similarity(self):
-        print('Cosine similarity: ')
-        for row in self.cos_similarity:
-            print("{:.2f}".format(*row), sep='')
 
-    def print_distance_to_centroid(self):
-        print('Distance to centroid: (-1 * x): ')
-        for row in self.distance_to_centroid:
-            print("{:.2f}".format(*row), sep='')
-
-    def create_scatter_plot(self, show_plot=False, seed=RandomState().randint(1, 1000000)):
+    def create_scatter_plot_data(self, seed=RandomState().randint(1, 1000000)):
         # For reproducible results, set seed to a fixed number.
         mds = manifold.MDS(n_components=2, dissimilarity='precomputed', random_state=seed)
         print(seed)
 
         coords = mds.fit_transform(self.pairwise_distance)
-        fig, ax = plt.subplots(figsize=(8, 6))
-
+        
         # Normalize the distance_to_centroid array for marker size scaling
-        marker_sizes = pow((1 - self.distance_to_centroid), 3) * 300
-        marker_sizes[-1] = 100   # Centroid marker size
+        marker_sizes = pow((1 - self.distance_to_centroid), 3) * 20
+        marker_sizes[-1] = 15   # Centroid marker size
 
+        return coords, marker_sizes
+
+    def create_scatter_plot(self, show_plot=False):
+        coords, marker_sizes = self.create_scatter_plot_data()
+        
+        fig, ax = plt.subplots(figsize=(8, 6))
         scatter = ax.scatter(coords[:, 0], coords[:, 1], c=self.distance_to_centroid, cmap='viridis', s=marker_sizes)
 
         # Stronger Connection Lines for stronger pairwise similarities: 
@@ -167,11 +162,10 @@ class Analyzer:
 
         # Add labels to each point
         labels = []
-        for i, dist in enumerate(coords):
-            if i == len(coords)-1:
+        for i in len(coords):
+            if i == len(coords)-1:  # Centroid, give it a special label and size
                 labels.append(ax.annotate(f"Centroid", (coords[i, 0], coords[i, 1]), xytext=(7, 3), textcoords='offset pixels'))
             else:
-                dist_round = round(dist[0], 2)
                 text = f"{i+1}"
                 label = ax.annotate(text, (coords[i, 0], coords[i, 1]), xytext=(7, 3), textcoords='offset pixels')
                 labels.append(label)
@@ -183,85 +177,17 @@ class Analyzer:
         # Set the axis labels and title
         ax.set_title('Distance to Centroid Visualization')
 
-        # Make coords accessible
-        self.coords = coords
-
         if show_plot:
             # Show the plot
             plt.show()
 
-    def create_heatmap(self):
-        fig, ax = plt.subplots(figsize=(8, 6))
-        plt.imshow(self.pairwise_distance, cmap='viridis', interpolation='nearest')
-        plt.colorbar(label='Similarity Score (0 = same)')
-        plt.title('Heatmap Graph of Similarity Scores')
+    # Convenience shortcuts:
+    def process_get_data(self):
+        self.preprocess_ideas()
+        self.calculate_similarities()
+        coords, marker_sizes = self.create_scatter_plot_data()
+        return coords, marker_sizes
 
-        n = 3  # Show every nth label
-        start = 1  # Start from this value
-        length = len(self.pairwise_distance)
-        end = length + start  # End at this value
-        labels = np.arange(start, end, n)  # Generate the labels
-
-        # Set the x-ticks and labels
-        len_aranged = np.arange(length)
-
-        # Create a list of empty strings for the unlabeled ticks
-        all_labels = ['' for _ in range(length)]
-
-        # Assign the generated labels to the appropriate positions
-        for i, label in enumerate(labels):
-            all_labels[i * n] = str(label)
-
-        # Set the x-ticks and labels
-        ax.set_xticks(len_aranged)
-        ax.set_xticklabels(all_labels)
-
-        ax.set_yticks(len_aranged)
-        ax.set_yticklabels(all_labels)
-
-        plt.xlabel('Idea Index')
-        plt.ylabel('Idea Index')
-        plt.grid(visible=True, linestyle='--', linewidth=0.5)
-        # as_html = mpld3.fig_to_html(fig, include_libraries=False, template_type="simple")
-        # plt.savefig('static/plot.png')
-        # plt.close(fig)
-        plt.show()
-
-    def create_network_graph(self):
-        import networkx as nx
-
-        # Create a graph
-        G = nx.Graph()
-
-        # Add nodes to the graph
-        num_nodes = self.pairwise_distance.shape[0]
-        for i in range(num_nodes):
-            G.add_node(i)
-
-        #Add edges based on distance matrix
-        for i in range(num_nodes):
-            for j in range(i+1, num_nodes):
-                weight = self.pairwise_distance[i][j]
-                G.add_edge(i, j, weight=weight)
-
-        # Position nodes using spring layout
-        coords = nx.spring_layout(G)
-
-        #Draw nodes
-        nx.draw_networkx_nodes(G, coords, node_size=500)
-
-        #Draw edges with weights
-        nx.draw_networkx_edges(G, coords)
-        edge_labels = {(u, v): d['weight'] for u, v, d in G.edges(data=True)}
-        nx.draw_networkx_edge_labels(G, coords, edge_labels=edge_labels)
-
-        #Display the graph
-        plt.title('Distance Graph')
-        plt.axis('off')
-        plt.show()
-
-
-    # Convenience shortcut:
     def process_all(self):
         self.preprocess_ideas()
         self.calculate_similarities()

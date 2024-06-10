@@ -41,3 +41,5 @@ next-env.d.ts
 
 # Other local-only files
 /.local/
+*.pyc
+*.csv

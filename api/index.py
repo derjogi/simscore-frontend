@@ -1,23 +1,16 @@
 import os
-import numpy as np
-import matplotlib.pyplot as plt, mpld3
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from matplotlib.collections import LineCollection
-from sklearn import manifold
-from sklearn.metrics import euclidean_distances
-from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.metrics.pairwise import pairwise_distances
-from scipy.integrate import odeint
 from analyzer.Analyzer import Analyzer
 
 app = FastAPI()
 
 ACCESS_CONTROL_ALLOW_CREDENTIALS = os.environ.get(
     'ACCESS_CONTROL_ALLOW_CREDENTIALS', 
-    "true")
+    True)
 ACCESS_CONTROL_ALLOW_ORIGIN = os.environ.get(
     'ACCESS_CONTROL_ALLOW_ORIGIN', 
     "*").split(",")
@@ -44,20 +37,23 @@ async def process_item(ideas_unprocessed: Ideas):
     ideas = [idea.strip() for idea in ideas_unprocessed.content.split('\n') if idea.strip()]
     (ideas_and_similarity, plot_data) = centroid_analysis(ideas)
     
-    return {"message": ideas_and_similarity, "plot_data": plot_data}
+    return JSONResponse(content={"message": ideas_and_similarity, "plot_data": plot_data})
 
 def centroid_analysis(ideas: list):
     # Initialize CountVectorizer to convert text into numerical vectors
     count_vectorizer = CountVectorizer()
     analyzer = Analyzer(ideas, count_vectorizer)
-    analyzer.process_all()
+    coords, marker_sizes = analyzer.process_get_data()
 
     table = []
     header = ["#", "Idea", "Cos Similarity", "Dist to centroid"]
     table.append(header)
-    for i, idea in enumerate(analyzer.original_ideas):
+    for i, idea in enumerate(analyzer.ideas):
         table.append([i+1, idea,round(analyzer.cos_similarity[i][0], 2), round(analyzer.distance_to_centroid[i][0], 2)])
     
     data = {}
-    data["scatter_points"] = analyzer.coords
-    return (table, data)   
+    data["scatter_points"] = coords.tolist()
+    data["marker_sizes"] = marker_sizes.tolist()
+    data["ideas"] = analyzer.ideas
+    data["pairwise_similarity"] = analyzer.pairwise_similarity.tolist()
+    return (table, data)

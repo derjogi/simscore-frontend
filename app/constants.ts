@@ -4,5 +4,8 @@ export interface OutputItem {
   }
   
 export interface PlotData {
-    scatter_points: [[number, number]];
-  }
+  scatter_points: [[number, number]];
+  marker_sizes: [[number]];
+  ideas: [string];
+  pairwise_similarity: [[number]];
+}
