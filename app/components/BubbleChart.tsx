@@ -8,7 +8,16 @@ interface BubbleChartProps {
 
 export default function BubbleChart({ plotData }: BubbleChartProps) {
   console.log(plotData)
-  const { scatter_points, marker_sizes, ideas, pairwise_similarity} = plotData;
+  const { scatter_points, marker_sizes, ideas, pairwise_similarity } = plotData;
+  const normalizedMarkerSizes = [...marker_sizes.slice(0, -1).map((size) => {
+      const minSize = 2;
+      const maxSize = marker_sizes.slice(-1)[0][0];
+      const minValue = Math.min(...marker_sizes.slice(0, -1).flat());
+      const maxValue = Math.max(...marker_sizes.slice(0, -1).flat());
+      const normalizedValue = (size[0] - minValue) / (maxValue - minValue);
+      return minSize + normalizedValue * (maxSize - minSize);
+    }), marker_sizes.slice(-1)[0][0]];
+    
   const data: ChartData<"bubble", (BubbleDataPoint)[]> = {
     labels: [...ideas, "Centroid"],
     datasets: [{
@@ -17,7 +26,7 @@ export default function BubbleChart({ plotData }: BubbleChartProps) {
         ([x, y], i) => ({
           x,
           y,
-          r: marker_sizes[i][0],
+          r: normalizedMarkerSizes[i],
           label: i, // To uniquely identify this item. This is not printed to the UI.
         })
       ),

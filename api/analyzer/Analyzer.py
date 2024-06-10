@@ -136,7 +136,7 @@ class Analyzer:
         coords = mds.fit_transform(self.pairwise_distance)
         
         # Normalize the distance_to_centroid array for marker size scaling
-        marker_sizes = pow((1 - self.distance_to_centroid), 3) * 20
+        marker_sizes = self.cos_similarity
         marker_sizes[-1] = 15   # Centroid marker size
 
         return coords, marker_sizes
