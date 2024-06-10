@@ -1,6 +1,8 @@
+import os
 import numpy as np
 import matplotlib.pyplot as plt, mpld3
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from matplotlib.collections import LineCollection
 from sklearn import manifold
@@ -12,6 +14,26 @@ from scipy.integrate import odeint
 from analyzer.Analyzer import Analyzer
 
 app = FastAPI()
+
+ACCESS_CONTROL_ALLOW_CREDENTIALS = os.environ.get(
+    'ACCESS_CONTROL_ALLOW_CREDENTIALS', 
+    "true")
+ACCESS_CONTROL_ALLOW_ORIGIN = os.environ.get(
+    'ACCESS_CONTROL_ALLOW_ORIGIN', 
+    "*").split(",")
+ACCESS_CONTROL_ALLOW_METHODS = os.environ.get(
+    'ACCESS_CONTROL_ALLOW_METHODS', 
+    "GET,OPTIONS,PATCH,DELETE,POST,PUT").split(",")
+ACCESS_CONTROL_ALLOW_HEADERS = os.environ.get(
+    'ACCESS_CONTROL_ALLOW_HEADERS', 
+    "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version").split(",")
+
+app.add_middleware(CORSMiddleware, 
+                   allow_origins=ACCESS_CONTROL_ALLOW_ORIGIN,
+                   allow_credentials=ACCESS_CONTROL_ALLOW_CREDENTIALS,
+                   allow_methods=ACCESS_CONTROL_ALLOW_METHODS,
+                   allow_headers=ACCESS_CONTROL_ALLOW_HEADERS
+                   )
 
 class Ideas(BaseModel):
     content: str
