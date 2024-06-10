@@ -35,9 +35,9 @@ class Ideas(BaseModel):
 async def process_item(ideas_unprocessed: Ideas):
     # split ideas.content by newline
     ideas = [idea.strip() for idea in ideas_unprocessed.content.split('\n') if idea.strip()]
-    (ideas_and_similarity, plot_data) = centroid_analysis(ideas)
+    (results, plot_data) = centroid_analysis(ideas)
     
-    return JSONResponse(content={"message": ideas_and_similarity, "plot_data": plot_data})
+    return JSONResponse(content={"results": results, "plot_data": plot_data})
 
 def centroid_analysis(ideas: list):
     # Initialize CountVectorizer to convert text into numerical vectors
@@ -45,15 +45,15 @@ def centroid_analysis(ideas: list):
     analyzer = Analyzer(ideas, count_vectorizer)
     coords, marker_sizes = analyzer.process_get_data()
 
-    table = []
-    header = ["#", "Idea", "Cos Similarity", "Dist to centroid"]
-    table.append(header)
-    for i, idea in enumerate(analyzer.ideas):
-        table.append([i+1, idea,round(analyzer.cos_similarity[i][0], 2), round(analyzer.distance_to_centroid[i][0], 2)])
-    
-    data = {}
-    data["scatter_points"] = coords.tolist()
-    data["marker_sizes"] = marker_sizes.tolist()
-    data["ideas"] = analyzer.ideas
-    data["pairwise_similarity"] = analyzer.pairwise_similarity.tolist()
-    return (table, data)
+    results = {
+        "ideas": analyzer.ideas, 
+        "similarity": analyzer.cos_similarity.tolist(), 
+        "distance": analyzer.distance_to_centroid.tolist()
+    }
+    data = {
+        "scatter_points": coords.tolist(),
+        "marker_sizes": marker_sizes.tolist(),
+        "ideas": analyzer.ideas,
+        "pairwise_similarity": analyzer.pairwise_similarity.tolist(),
+    }
+    return (results, data)

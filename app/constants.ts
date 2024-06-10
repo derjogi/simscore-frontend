@@ -1,7 +1,8 @@
 export interface OutputItem {
-    idea: string;
-    similarity: number;
-  }
+  ideas: string[];
+  similarity: number[];
+  distance: number[];
+}
   
 export interface PlotData {
   scatter_points: [[number, number]];
