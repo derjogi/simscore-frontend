@@ -1,13 +1,18 @@
 import {Chart, ChartData, Point, BubbleDataPoint } from 'chart.js/auto';
 import { PlotData } from "../constants"
 import { Bubble } from "react-chartjs-2";
+import ChartDataLabels from 'chartjs-plugin-datalabels';
+import annotationPlugin from 'chartjs-plugin-annotation';
+
+
 
 interface BubbleChartProps {
   plotData: PlotData;
 }
 
 export default function BubbleChart({ plotData }: BubbleChartProps) {
-  console.log(plotData)
+  Chart.register(annotationPlugin);
+  Chart.register(ChartDataLabels);
   const { scatter_points, marker_sizes, ideas, pairwise_similarity } = plotData;
   const minSize = 2;
   const maxSize = Math.max(15, marker_sizes.slice(-1)[0][0]);
@@ -40,16 +45,32 @@ export default function BubbleChart({ plotData }: BubbleChartProps) {
           y,
           r: normalizedMarkerSizes[i],
           label: i, // To uniquely identify this item. This is not printed to the UI.
-          display_label: "Something " + i,
-          backgroundColor: "rgba(111, 111, 132, 0.2)",
         })
       ),
       backgroundColor: colors,
-      borderColor: "rgba(255, 99, 132, 1)",
-      borderWidth: 1,
+      datalabels: {
+        anchor: 'end',
+        offset: 20, // This doesn't work for some reason
+      }
     }]
   };
-  console.log('Data:', data)
+
+  const weightedLines = Object.fromEntries(
+    pairwise_similarity.flatMap((distances, i) =>
+      scatter_points.map((point, j) => [
+        `line${i + 1}_${j + 1}`,
+        {
+          type: "line",
+          xMin: scatter_points[i][0],
+          xMax: point[0],
+          yMin: scatter_points[i][1],
+          yMax: point[1],
+          borderColor: "rgba(111, 111, 132, 1)",
+          borderWidth: distances[j],
+        },
+      ])
+    )
+  );
 
   const options = {
     plugins: {
@@ -57,10 +78,9 @@ export default function BubbleChart({ plotData }: BubbleChartProps) {
         display: true,
         text: "Displays the distance of each idea to the Centroid and each other."
       },
-      // display_label: {
-      //   id: "display_label",
-      //   beforeD
-      // }
+      annotation: {
+        annotations: weightedLines
+      },
     }
   }
 
