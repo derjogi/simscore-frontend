@@ -132,20 +132,24 @@ class Analyzer:
         # For reproducible results, set seed to a fixed number.
         mds = manifold.MDS(n_components=2, dissimilarity='precomputed', random_state=seed)
         print(seed)
-
         coords = mds.fit_transform(self.pairwise_distance)
-        
-        # Normalize the distance_to_centroid array for marker size scaling
         marker_sizes = self.cos_similarity
-        marker_sizes[-1] = 15   # Centroid marker size
-
         return coords, marker_sizes
 
     def create_scatter_plot(self, show_plot=False):
         coords, marker_sizes = self.create_scatter_plot_data()
         
+        def normalize(array, min_size=10, max_size=100):
+            min_value = array.min()
+            max_value = array.max()
+            normalizedValue = (array - min_value) / (max_value - min_value)
+            return min_size + normalizedValue * (max_size - min_size)
+      
+        # Normalize marker sizes for the plot
+        normalized_marker_sizes = normalize(marker_sizes)
+
         fig, ax = plt.subplots(figsize=(8, 6))
-        scatter = ax.scatter(coords[:, 0], coords[:, 1], c=self.distance_to_centroid, cmap='viridis', s=marker_sizes)
+        scatter = ax.scatter(coords[:, 0], coords[:, 1], c=self.distance_to_centroid, cmap='viridis', s=normalized_marker_sizes)
 
         # Stronger Connection Lines for stronger pairwise similarities: 
         segments = []
@@ -162,7 +166,7 @@ class Analyzer:
 
         # Add labels to each point
         labels = []
-        for i in len(coords):
+        for i in range(len(coords)):
             if i == len(coords)-1:  # Centroid, give it a special label and size
                 labels.append(ax.annotate(f"Centroid", (coords[i, 0], coords[i, 1]), xytext=(7, 3), textcoords='offset pixels'))
             else:
