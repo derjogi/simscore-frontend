@@ -1,4 +1,4 @@
-import {Chart, ChartData, Point, BubbleDataPoint } from 'chart.js/auto';
+import {Chart, ChartData, Point, BubbleDataPoint, ChartOptions } from 'chart.js/auto';
 import { PlotData } from "../constants"
 import { Bubble } from "react-chartjs-2";
 import ChartDataLabels from 'chartjs-plugin-datalabels';
@@ -82,7 +82,7 @@ export default function BubbleChart({ plotData }: BubbleChartProps) {
         annotations: weightedLines
       },
     }
-  }
+  } as ChartOptions<"bubble">;
 
   return (
     <div className="chart-container">
