@@ -137,7 +137,7 @@ class Analyzer:
         return coords, marker_sizes
 
     def create_scatter_plot(self, show_plot=False):
-        coords, marker_sizes = self.create_scatter_plot_data()
+        coords, marker_sizes = self.create_scatter_plot_data(1)
         
         def normalize(array, min_size=10, max_size=100):
             min_value = array.min()
@@ -189,7 +189,7 @@ class Analyzer:
     def process_get_data(self):
         self.preprocess_ideas()
         self.calculate_similarities()
-        coords, marker_sizes = self.create_scatter_plot_data()
+        coords, marker_sizes = self.create_scatter_plot_data(1)
         return coords, marker_sizes
 
     def process_all(self):

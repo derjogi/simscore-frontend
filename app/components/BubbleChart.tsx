@@ -51,6 +51,12 @@ export default function BubbleChart({ plotData }: BubbleChartProps) {
       datalabels: {
         anchor: 'end',
         offset: 20, // This doesn't work for some reason
+        formatter: (value, ctx) => {
+          if (value.label == scatter_points.length - 1) {
+            return "Centroid";
+          }
+          return value.label+1;
+        },
       }
     }]
   };
@@ -72,6 +78,13 @@ export default function BubbleChart({ plotData }: BubbleChartProps) {
     )
   );
 
+  const xMin = Math.min(...scatter_points.map(([x, y]) => x));
+  const xMax = Math.max(...scatter_points.map(([x, y]) => x));
+  const yMin = Math.min(...scatter_points.map(([x, y]) => y));
+  const yMax = Math.max(...scatter_points.map(([x, y]) => y));
+  const min = Math.min(xMin, yMin)
+  const max = Math.max(xMax, yMax)
+
   const options = {
     plugins: {
       title: {
@@ -81,12 +94,25 @@ export default function BubbleChart({ plotData }: BubbleChartProps) {
       annotation: {
         annotations: weightedLines
       },
+    },
+    aspectRatio: 1,
+    scales: {
+      x: {
+        type: "linear",
+        min: min,
+        max: max
+      },
+      y: {
+        type: "linear",
+        min: min,
+        max: max
+      },
     }
   } as ChartOptions<"bubble">;
 
   return (
     <div className="chart-container">
-      <h2 style={{ textAlign: "center" }}>Similarity Score</h2>
+      <h2 className='text-center'>Similarity Score</h2>
       <Bubble
         data={data}
         options={options}

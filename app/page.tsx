@@ -82,7 +82,10 @@ export default function Home() {
             <hr />
             <div className="pt-4 space-y-2">
               <h2>Results:</h2>
-              <BubbleChart plotData={plotData} />
+              <div className="p-8">
+                <BubbleChart plotData={plotData} />
+              </div>
+
               <div className="space-y-2">
                 <caption>Similarity Details</caption>
                 <tr key="header" className="px-4">
