@@ -1,6 +1,6 @@
 "use client";
 
-import { SetStateAction, useState } from "react";
+import { useState } from "react";
 import BubbleChart from "./components/BubbleChart";
 import Chart from "chart.js/auto";
 import { CategoryScale } from "chart.js";
@@ -15,20 +15,19 @@ export default function Home() {
   Chart.register(CategoryScale);
 
   const handleSubmit = async (e: any) => {
-    console.log("Submitted!");
     e.preventDefault();
-    const host = process.env.BACKEND_URL;
-    console.log(host);
-    const processAPI = host + "/api/process";
+    const host = process.env.SIMSCORE_API;
+    const processAPI = host + "/process";
+    console.log("Sending ideas to ", processAPI);
+    let ideas = input.split('\n').filter(idea => idea.trim() !== '');
+    console.log(input);
     const response = await fetch(processAPI, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       redirect: "follow",
-      body: JSON.stringify({
-        content: input,
-      }),
+      body: JSON.stringify(ideas),
     })
       .then((res) => res.json())
       .then((data) => {
@@ -87,25 +86,31 @@ export default function Home() {
               </div>
 
               <div className="space-y-2">
-                <caption>Similarity Details</caption>
-                <tr key="header" className="px-4">
-                  <td className="px-4">#</td>
-                  <td className="px-4">Idea</td>
-                  <td className="px-4">Similarity</td>
-                  <td className="px-4">Distance</td>
-                </tr>
-                {output?.ideas.map((idea, i) => (
-                  <tr key={i} className="px-4">
-                    <td className="px-4">{i+1}</td>
-                    <td className="px-4">{idea}</td>
-                    <td className="px-4">
-                      {Number(output.similarity[i]).toFixed(2)}
-                    </td>
-                    <td className="px-4">
-                      {Number(output.distance[i]).toFixed(2)}
-                    </td>
-                  </tr>
-                ))}
+                <table>
+                  <caption>Similarity Details</caption>
+                  <thead>
+                    <tr key="header" className="px-4">
+                      <td className="px-4">#</td>
+                      <td className="px-4">Idea</td>
+                      <td className="px-4">Similarity</td>
+                      <td className="px-4">Distance</td>
+                    </tr>
+                  </thead>
+                  <tbody>
+                  {output?.ideas.map((idea, i) => (
+                    <tr key={i} className="px-4">
+                      <td className="px-4">{i + 1}</td>
+                      <td className="px-4">{idea}</td>
+                      <td className="px-4">
+                        {Number(output.similarity[i]).toFixed(2)}
+                      </td>
+                      <td className="px-4">
+                        {Number(output.distance[i]).toFixed(2)}
+                      </td>
+                    </tr>
+                  ))}
+                    </tbody>
+                </table>
               </div>
             </div>
           </div>
