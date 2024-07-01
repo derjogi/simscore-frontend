@@ -1,21 +1,17 @@
 <p align="center">
   <a href="https://nextjs-fastapi-starter.vercel.app/">
     <img src="https://assets.vercel.com/image/upload/v1588805858/repositories/vercel/logo.png" height="96">
-    <h3 align="center">Centroid Analysis</h3>
+    <h3 align="center">SimScore</h3>
   </a>
 </p>
 
-<p align="center">Simple Next.js boilerplate that uses <a href="https://fastapi.tiangolo.com/">FastAPI</a> as the API backend.</p>
+<p align="center">Calculates semantic similarity scores between ideas to identify the most 'central' ones.</p>
 
 <br/>
 
 ## Introduction
 
 Analysis of user sentiments using a centroid analysis. For more information, check in [RnDAO](https://www.rndao.io/)'s discord channel.
-
-## Interactive Analysis
-If you just want to run an analysis without using the website, feel free to open and play around with this interactive python notebook:
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/derjogi/centroid-paulw-nextjs/HEAD?labpath=%2Fapi%2Fanalyzer%2Fcentroid_plots.ipynb)
 
 ## Development - Getting Started
 
