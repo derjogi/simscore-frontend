@@ -1,8 +1,5 @@
 <p align="center">
-  <a href="https://nextjs-fastapi-starter.vercel.app/">
-    <img src="https://assets.vercel.com/image/upload/v1588805858/repositories/vercel/logo.png" height="96">
     <h3 align="center">SimScore</h3>
-  </a>
 </p>
 
 <p align="center">Calculates semantic similarity scores between ideas to identify the most 'central' ones.</p>
