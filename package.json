@@ -3,15 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "concurrently \"npm run build-frontend\" \"npm run build-backend\"",
-    "build-frontend": "next build",
-    "build-backend": "cd api && pip3 install -r requirements.txt",
-    "dev": "concurrently \"npm run dev-frontend\" \"npm run dev-backend\"",
-    "dev-frontend": "next dev",
-    "dev-backend": "cd api && python3 -m uvicorn index:app --reload",
-    "start": "concurrently \"npm run start-frontend\" \"npm run start-backend\"",
-    "start-frontend": "next start -p ${PORT_FRONTEND-3000}",
-    "start-backend": "cd api && uvicorn index:app --host 0.0.0.0 --port $PORT",
+    "build": "next build",
+    "dev": "npm run next dev",
+    "start": "npm run next start -p ${PORT_FRONTEND-3000}",
     "lint": "next lint"
   },
   "dependencies": {
