@@ -2,14 +2,15 @@
 
 import { useState } from "react";
 import BubbleChart from "./components/BubbleChart";
+import ClusterChart from "./components/ClusterChart";
 import Chart from "chart.js/auto";
 import { CategoryScale } from "chart.js";
-import { PlotData, OutputItem } from "./constants";
+import { PlotData, IdeasAndSimScores } from "./constants";
 import Textarea from "react-dropzone-textarea";
 
 export default function Home() {
   const [input, setInput] = useState("");
-  const [output, setOutput] = useState<OutputItem>();
+  const [output, setOutput] = useState<IdeasAndSimScores>();
   const [plotData, setPlotData] = useState<PlotData>();
 
   Chart.register(CategoryScale);
@@ -83,6 +84,10 @@ export default function Home() {
               <h2>Results:</h2>
               <div className="p-8">
                 <BubbleChart plotData={plotData} />
+              </div>
+
+              <div className="p-8">
+                <ClusterChart plotData={plotData} />
               </div>
 
               <div className="space-y-2">
