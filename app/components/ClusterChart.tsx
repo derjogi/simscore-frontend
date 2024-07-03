@@ -1,7 +1,6 @@
-import { Chart, ChartData, ChartOptions } from 'chart.js/auto'
+import { Chart, ChartData, ChartOptions, ScatterDataPoint } from 'chart.js/auto'
 import { PlotData, KmeansData } from "../constants"
 import { Scatter } from "react-chartjs-2"
-import ChartDataLabels from 'chartjs-plugin-datalabels'
 import annotationPlugin from 'chartjs-plugin-annotation'
 
 interface ClusterChartProps {
@@ -10,54 +9,67 @@ interface ClusterChartProps {
 
 export default function ClusterChart({ plotData }: ClusterChartProps) {
   Chart.register(annotationPlugin)
-  Chart.register(ChartDataLabels)
-  const { kmeans_data } = plotData
+  const { kmeans_data: kmeans } = plotData
+  console.log("Kmeans data: ", kmeans)
+  if (!kmeans) {
+    return <div>No data to display</div>
+  }
 
-  const data: ChartData<"scatter", (number[] | null)[]> = {
-    datasets: Object.entries(kmeans_data || {}).map(([clusterNumber, { data, centers }]) => ({
-      label: clusterNumber,
-      data: data.map((point: [number, number]) => ({ x: point[0], y: point[1] })),
-      backgroundColor: `hsl(${Math.random() * 360}, 100%, 50%)`,
+  const data: ChartData<"scatter", (ScatterDataPoint)[]> = {
+    datasets: Object.entries(
+      kmeans.data.reduce((acc, point, index) => {
+        const cluster = kmeans.cluster[index];
+        if (!acc[cluster]) {
+          acc[cluster] = [];
+        }
+        acc[cluster].push({ x: point[0], y: point[1], index: index+1 });
+        return acc;
+      }, {} as Record<number, { x: number; y: number, index: number }[]>)
+    ).map(([cluster, points]) => ({
+      label: `Cluster ${parseInt(cluster) + 1}`,
+      data: points.map(({ x, y, index }) => ({ x, y, index, r: 20})),
+      backgroundColor: `hsl(${parseInt(cluster) * 360 / kmeans!.centers.length}, 100%, 50%)`,
+      pointRadius: 5,
       datalabels: {
-        anchor: 'end',
-        offset: 20, // This doesn't work for some reason
-        formatter: (value, ctx) => {
-          
-          return value.label+1;
+        align: 'top',
+        anchor: 'start',
+        formatter: (value: any, ctx: any) => {
+          return value.index;
         },
       }
     }))
   }
 
+  console.log(data);
   const options: ChartOptions<"scatter"> = {
     plugins: {
       title: {
         display: true,
         text: "Cluster Chart"
       },
-      annotation: {
-        annotations: Object.entries(kmeans_data || {}).flatMap(([clusterNumber, { centers }]) =>
-          centers.map((center: number[], i: number) => ({
-            type: "label",
-            xValue: i,
-            yValue: "",
-            content: `Cluster ${clusterNumber}`,
-            color: "black",
-          }))
-        ),
-      },
+      tooltip: {
+        callbacks: {
+          label: function (context) {
+            const dataPoint = context.raw as { x: number; y: number; index: number };
+            return `Idea ${dataPoint.index}: ${plotData.ideas[dataPoint.index - 1]}`;
+          }
+        }
+      }
+    },
+    interaction: {
+      mode: 'nearest',
     },
     aspectRatio: 1,
     scales: {
       x: {
         type: "linear",
-        min: Math.min(...Object.values(kmeans_data || {}).flatMap(({ data }) => data.map(([x]: [number]) => x))),
-        max: Math.max(...Object.values(kmeans_data || {}).flatMap(({ data }) => data.map(([x]: [number]) => x))),
+        min: Math.min(...kmeans.data.map(point => point[0])),
+        max: Math.max(...kmeans.data.map(point => point[0])),
       },
       y: {
         type: "linear",
-        min: Math.min(...Object.values(kmeans_data || {}).flatMap(({ data }) => data.map(([, y]) => y))),
-        max: Math.max(...Object.values(kmeans_data || {}).flatMap(({ data }) => data.map(([, y]) => y))),
+        min: Math.min(...kmeans.data.map(point => point[1])),
+        max: Math.max(...kmeans.data.map(point => point[1])),
       },
     },
   }

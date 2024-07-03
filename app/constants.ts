@@ -12,11 +12,8 @@ export interface PlotData {
   kmeans_data?: KmeansData;
 }
 
-export interface KmeansCluster {
+export interface KmeansData {
   data: number[][];
   centers: number[][];
-}
-
-export interface KmeansData {
-  [clusterNumber: number]: KmeansCluster;
+  cluster: number[];
 }

@@ -82,12 +82,12 @@ export default function Home() {
             <hr />
             <div className="pt-4 space-y-2">
               <h2>Results:</h2>
-              <div className="p-8">
-                <BubbleChart plotData={plotData} />
-              </div>
 
               <div className="p-8">
                 <ClusterChart plotData={plotData} />
+              </div>
+              <div className="p-8">
+                <BubbleChart plotData={plotData} />
               </div>
 
               <div className="space-y-2">

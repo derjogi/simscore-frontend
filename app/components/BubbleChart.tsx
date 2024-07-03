@@ -50,7 +50,7 @@ export default function BubbleChart({ plotData }: BubbleChartProps) {
       backgroundColor: colors,
       datalabels: {
         anchor: 'end',
-        offset: 20, // This doesn't work for some reason
+        align: 'top',
         formatter: (value, ctx) => {
           if (value.label == scatter_points.length - 1) {
             return "Centroid";
