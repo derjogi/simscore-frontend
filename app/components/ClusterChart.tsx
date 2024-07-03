@@ -1,11 +1,15 @@
-import { Chart, ChartData, ChartOptions, ScatterDataPoint } from 'chart.js/auto'
+import { Chart, ChartData, ChartDataset, ChartOptions, ScatterDataPoint } from 'chart.js/auto'
 import { PlotData, KmeansData } from "../constants"
 import { Scatter } from "react-chartjs-2"
 import annotationPlugin from 'chartjs-plugin-annotation'
+import ChartDataLabels from 'chartjs-plugin-datalabels';
 
 interface ClusterChartProps {
   plotData: PlotData
 }
+
+type DataPointWithIndex = ScatterDataPoint
+  & { label: number | string };
 
 export default function ClusterChart({ plotData }: ClusterChartProps) {
   Chart.register(annotationPlugin)
@@ -15,30 +19,53 @@ export default function ClusterChart({ plotData }: ClusterChartProps) {
     return <div>No data to display</div>
   }
 
-  const data: ChartData<"scatter", (ScatterDataPoint)[]> = {
-    datasets: Object.entries(
-      kmeans.data.reduce((acc, point, index) => {
-        const cluster = kmeans.cluster[index];
-        if (!acc[cluster]) {
-          acc[cluster] = [];
-        }
-        acc[cluster].push({ x: point[0], y: point[1], index: index+1 });
-        return acc;
-      }, {} as Record<number, { x: number; y: number, index: number }[]>)
-    ).map(([cluster, points]) => ({
-      label: `Cluster ${parseInt(cluster) + 1}`,
-      data: points.map(({ x, y, index }) => ({ x, y, index, r: 20})),
-      backgroundColor: `hsl(${parseInt(cluster) * 360 / kmeans!.centers.length}, 100%, 50%)`,
-      pointRadius: 5,
-      datalabels: {
-        align: 'top',
-        anchor: 'start',
-        formatter: (value: any, ctx: any) => {
-          return value.index;
-        },
+  const datasetPoints = Object.entries(
+    kmeans.data.reduce((acc, point, index) => {
+      const cluster = kmeans.cluster[index];
+      if (!acc[cluster]) {
+        acc[cluster] = [];
       }
-    }))
-  }
+      acc[cluster].push({ 
+        x: point[0], 
+        y: point[1], 
+        label: index + 1
+      });
+      return acc;
+    }, {} as Record<number, DataPointWithIndex[]>)
+  ).map(([cluster, points]): ChartDataset<"scatter", DataPointWithIndex[]> => ({
+    type: 'scatter',
+    label: `Cluster ${parseInt(cluster) + 1}`,
+    data: points,
+    backgroundColor: `hsl(${parseInt(cluster) * 360 / kmeans!.centers.length}, 100%, 50%)`,
+    pointRadius: 5,
+    datalabels: {
+      align: 'top',
+      anchor: 'start',
+      formatter: (value: DataPointWithIndex) => {
+        return value.label;
+      },
+    }
+  }));
+
+  const datasetCenters = {
+    type: 'scatter',
+    label: 'Cluster Centers',
+    data: kmeans.centers.map((center, index) => ({
+      x: center[0],
+      y: center[1],
+      label: `Cluster ${index}` 
+    })),
+    backgroundColor: 'rgba(0, 0, 0, 1)',
+    pointRadius: 10,
+    pointStyle: 'triangle',
+  } as ChartDataset<"scatter", DataPointWithIndex[]>;
+
+  const data: ChartData<"scatter", DataPointWithIndex[]> = {
+    datasets: [
+      ...datasetPoints,
+      datasetCenters
+    ]
+  };
 
   console.log(data);
   const options: ChartOptions<"scatter"> = {
@@ -50,8 +77,10 @@ export default function ClusterChart({ plotData }: ClusterChartProps) {
       tooltip: {
         callbacks: {
           label: function (context) {
-            const dataPoint = context.raw as { x: number; y: number; index: number };
-            return `Idea ${dataPoint.index}: ${plotData.ideas[dataPoint.index - 1]}`;
+            const dataPoint = context.raw as DataPointWithIndex;
+            return typeof dataPoint.label === 'number'
+              ? `Idea ${dataPoint.label}: ${plotData.ideas[dataPoint.label - 1]}`
+              : `Center of ${dataPoint.label}`;
           }
         }
       }

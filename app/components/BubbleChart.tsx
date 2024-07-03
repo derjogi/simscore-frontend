@@ -4,8 +4,6 @@ import { Bubble } from "react-chartjs-2";
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import annotationPlugin from 'chartjs-plugin-annotation';
 
-
-
 interface BubbleChartProps {
   plotData: PlotData;
 }
@@ -32,7 +30,7 @@ export default function BubbleChart({ plotData }: BubbleChartProps) {
     const hue = (size / Math.max(...normalizedMarkerSizes)) * 120;
     const saturation = 100;
     const lightness = 50;
-    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+    return `hsl(${hue}, ${saturation}%, ${lightness}%, 0.5)`;
   });
 
   const data: ChartData<"bubble", (BubbleDataPoint)[]> = {
@@ -94,6 +92,17 @@ export default function BubbleChart({ plotData }: BubbleChartProps) {
       annotation: {
         annotations: weightedLines
       },
+      tooltip: {
+        callbacks: {
+          label: function (context) {
+            const dataPoint = context.raw as { x: number; y: number; label: number };
+            if (dataPoint.label == scatter_points.length - 1) {
+              return "Centroid"
+            }
+            return `Idea ${dataPoint.label+ 1}: ${plotData.ideas[dataPoint.label]}`;
+          }
+        }
+      }
     },
     aspectRatio: 1,
     scales: {
