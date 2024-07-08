@@ -7,6 +7,7 @@ import Chart from "chart.js/auto";
 import { CategoryScale } from "chart.js";
 import { PlotData, IdeasAndSimScores } from "./constants";
 import Textarea from "react-dropzone-textarea";
+import DragDrop from "./components/DragDrop";
 
 export default function Home() {
   const [input, setInput] = useState("");
@@ -34,6 +35,7 @@ export default function Home() {
       .then((data) => {
         setOutput(data.results);
         setPlotData(data.plot_data);
+        console.log("Data: ", output);
       });
   };
 
@@ -89,7 +91,13 @@ export default function Home() {
               <div className="p-8">
                 <BubbleChart plotData={plotData} />
               </div>
-
+              
+              {output && (
+                <div className="p-8">
+                  <DragDrop data={output} />
+                </div>
+              )}
+              
               <div className="space-y-2">
                 <table>
                   <caption>Similarity Details</caption>
@@ -107,10 +115,10 @@ export default function Home() {
                       <td className="px-4">{i + 1}</td>
                       <td className="px-4">{idea}</td>
                       <td className="px-4">
-                        {Number(output.similarity[i]).toFixed(2)}
+                        {output.similarity[i].toFixed(2)}
                       </td>
                       <td className="px-4">
-                        {Number(output.distance[i]).toFixed(2)}
+                        {output.distance[i].toFixed(2)}
                       </td>
                     </tr>
                   ))}
