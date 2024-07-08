@@ -13,11 +13,13 @@ export default function Home() {
   const [input, setInput] = useState("");
   const [output, setOutput] = useState<IdeasAndSimScores>();
   const [plotData, setPlotData] = useState<PlotData>();
+  const [isLoading, setIsLoading] = useState(false);
 
   Chart.register(CategoryScale);
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
+    setIsLoading(true);
     const host = process.env.SIMSCORE_API;
     const processAPI = host + "/process";
     console.log("Sending ideas to ", processAPI);
@@ -35,6 +37,7 @@ export default function Home() {
       .then((data) => {
         setOutput(data.results);
         setPlotData(data.plot_data);
+        setIsLoading(false);
         console.log("Data: ", output);
       });
   };
@@ -69,7 +72,6 @@ export default function Home() {
               className: "!bg-white border-2 rounded-lg p-2",
             }}
           />
-
           <button
             type="submit"
             onClick={handleSubmit}
@@ -79,7 +81,13 @@ export default function Home() {
           </button>
         </form>
 
-        {plotData && (
+        {isLoading && (
+          <div className="flex justify-center items-center">
+            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+          </div>
+        )}
+
+        {plotData && !isLoading && (
           <div>
             <hr />
             <div className="pt-4 space-y-2">
