@@ -14,9 +14,11 @@ interface SortableItemProps {
   content: string;
   similarity: number;
   distance: number;
+  originalIndex: number;
+  currentIndex: number;
 }
 
-const SortableItem: React.FC<SortableItemProps> = ({ id, content, similarity, distance }) => {
+const SortableItem: React.FC<SortableItemProps> = ({ id, content, similarity, distance, originalIndex, currentIndex }) => {
   const {
     attributes,
     listeners,
@@ -32,11 +34,23 @@ const SortableItem: React.FC<SortableItemProps> = ({ id, content, similarity, di
 
   return (
     <li ref={setNodeRef} style={style} {...attributes} {...listeners} className="bg-white p-4 rounded shadow mb-2 cursor-move">
-      <div className="flex justify-between items-center">
-        <span className="font-medium">{content}</span>
-        <div className="text-sm text-gray-500">
-          <span className="mr-2">Similarity: {similarity.toFixed(2)}</span>
-          <span>Distance: {distance.toFixed(2)}</span>
+      <div className="flex items-center space-x-4">
+        <div className="flex-shrink-0 w-16 text-center">
+          {originalIndex !== currentIndex ? (
+            <>
+              <span className="line-through">{originalIndex + 1}</span>
+              <span className="text-red-500 ml-1">{currentIndex + 1}</span>
+            </>
+          ) : (
+            <span>{originalIndex + 1}</span>
+          )}
+        </div>
+        <div className="flex-grow">
+          <span className="font-medium">{content}</span>
+        </div>
+        <div className="text-sm text-gray-500 text-right md:flex md:flex-col">
+          <span className="mr-2 whitespace-nowrap md:mr-0">Similarity: {similarity.toFixed(2)}</span>
+          <span className="whitespace-nowrap">Distance: {distance.toFixed(2)}</span>
         </div>
       </div>
     </li>
@@ -50,6 +64,7 @@ const DragDrop: React.FC<DragDropProps> = ({ data }) => {
       content: idea,
       similarity: data.similarity[index],
       distance: data.distance[index],
+      originalIndex: index,
     }))
   );
 
@@ -77,8 +92,16 @@ const DragDrop: React.FC<DragDropProps> = ({ data }) => {
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={items.map(item => item.id)} strategy={verticalListSortingStrategy}>
         <ul className="space-y-2">
-          {items.map((item) => (
-            <SortableItem key={item.id} id={item.id} content={item.content} similarity={item.similarity} distance={item.distance} />
+          {items.map((item, index) => (
+            <SortableItem 
+              key={item.id} 
+              id={item.id} 
+              content={item.content} 
+              similarity={item.similarity} 
+              distance={item.distance} 
+              originalIndex={item.originalIndex}
+              currentIndex={index}
+            />
           ))}
         </ul>
       </SortableContext>
