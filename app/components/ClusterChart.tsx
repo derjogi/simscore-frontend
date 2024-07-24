@@ -111,4 +111,5 @@ const ClusterChart = React.memo(({ plotData }: ClusterChartProps) => {
   )
 });
 
+ClusterChart.displayName = 'ClusterChart';
 export default ClusterChart;

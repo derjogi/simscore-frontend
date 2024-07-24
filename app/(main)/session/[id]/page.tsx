@@ -53,7 +53,7 @@ export default function SessionPage({ params }: { params: { id: string } }) {
         <div>
           <hr />
           <div className="pt-4 space-y-2">
-            <h2>Re-Rank this feedback, and submit when you're done:</h2>
+            <h2>{"Re-Rank this feedback, and submit when you're done:"}</h2>
 
             {ideasAndSimScores && (
               <>

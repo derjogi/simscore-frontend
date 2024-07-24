@@ -132,4 +132,5 @@ const BubbleChart = React.memo(({ plotData }: BubbleChartProps) => {
   );
 });
 
+BubbleChart.displayName = 'BubbleChart';
 export default BubbleChart;
