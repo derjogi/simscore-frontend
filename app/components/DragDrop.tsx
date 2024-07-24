@@ -7,6 +7,7 @@ import { IdeasAndSimScores } from '../constants';
 
 interface DragDropProps {
   data: IdeasAndSimScores;
+  onUpdate: (updatedData: string[]) => void;
 }
 
 interface SortableItemProps {
@@ -57,7 +58,7 @@ const SortableItem: React.FC<SortableItemProps> = ({ id, content, similarity, di
   );
 };
 
-const DragDrop: React.FC<DragDropProps> = ({ data }) => {
+const DragDrop: React.FC<DragDropProps> = ({ data, onUpdate }) => {
   const [items, setItems] = useState(
     data.ideas.map((idea, index) => ({
       id: `item-${index}`,
@@ -79,13 +80,15 @@ const DragDrop: React.FC<DragDropProps> = ({ data }) => {
     const { active, over } = event;
 
     if (active.id !== over.id) {
-      setItems((items) => {
-        const oldIndex = items.findIndex((item) => item.id === active.id);
-        const newIndex = items.findIndex((item) => item.id === over.id);
+      const oldIndex = items.findIndex((item) => item.id === active.id);
+      const newIndex = items.findIndex((item) => item.id === over.id);
 
-        return arrayMove(items, oldIndex, newIndex);
-      });
+      const newItems = arrayMove(items, oldIndex, newIndex);
+      setItems(newItems);
+      const updatedIdeas = newItems.map(item => item.content);
+      onUpdate(updatedIdeas);
     }
+
   };
 
   return (

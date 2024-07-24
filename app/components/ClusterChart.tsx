@@ -1,8 +1,8 @@
+import React from "react"
 import { Chart, ChartData, ChartDataset, ChartOptions, ScatterDataPoint } from 'chart.js/auto'
 import { PlotData, KmeansData } from "../constants"
 import { Scatter } from "react-chartjs-2"
 import annotationPlugin from 'chartjs-plugin-annotation'
-import ChartDataLabels from 'chartjs-plugin-datalabels';
 
 interface ClusterChartProps {
   plotData: PlotData
@@ -11,7 +11,7 @@ interface ClusterChartProps {
 type DataPointWithIndex = ScatterDataPoint
   & { label: number | string };
 
-export default function ClusterChart({ plotData }: ClusterChartProps) {
+const ClusterChart = React.memo(({ plotData }: ClusterChartProps) => {
   Chart.register(annotationPlugin)
   const { kmeans_data: kmeans } = plotData
   console.log("Kmeans data: ", kmeans)
@@ -25,9 +25,9 @@ export default function ClusterChart({ plotData }: ClusterChartProps) {
       if (!acc[cluster]) {
         acc[cluster] = [];
       }
-      acc[cluster].push({ 
-        x: point[0], 
-        y: point[1], 
+      acc[cluster].push({
+        x: point[0],
+        y: point[1],
         label: index + 1
       });
       return acc;
@@ -53,7 +53,7 @@ export default function ClusterChart({ plotData }: ClusterChartProps) {
     data: kmeans.centers.map((center, index) => ({
       x: center[0],
       y: center[1],
-      label: `Cluster ${index}` 
+      label: `Cluster ${index}`
     })),
     backgroundColor: 'rgba(0, 0, 0, 1)',
     pointRadius: 10,
@@ -109,4 +109,6 @@ export default function ClusterChart({ plotData }: ClusterChartProps) {
       <Scatter data={data} options={options} />
     </div>
   )
-}
+});
+
+export default ClusterChart;

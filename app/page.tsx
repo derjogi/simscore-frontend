@@ -3,140 +3,28 @@
 import { useState } from "react";
 import BubbleChart from "./components/BubbleChart";
 import ClusterChart from "./components/ClusterChart";
-import Chart from "chart.js/auto";
-import { CategoryScale } from "chart.js";
 import { PlotData, IdeasAndSimScores } from "./constants";
 import Textarea from "react-dropzone-textarea";
 import DragDrop from "./components/DragDrop";
+import Link from "next/link";
 
 export default function Home() {
-  const [input, setInput] = useState("");
-  const [output, setOutput] = useState<IdeasAndSimScores>();
-  const [plotData, setPlotData] = useState<PlotData>();
-  const [isLoading, setIsLoading] = useState(false);
-
-  Chart.register(CategoryScale);
-
-  const handleSubmit = async (e: any) => {
-    e.preventDefault();
-    setIsLoading(true);
-    const host = process.env.SIMSCORE_API;
-    const processAPI = host + "/process";
-    console.log("Sending ideas to ", processAPI);
-    let ideas = input.split('\n').filter(idea => idea.trim() !== '');
-    console.log(input);
-    const response = await fetch(processAPI, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      redirect: "follow",
-      body: JSON.stringify(ideas),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setOutput(data.results);
-        setPlotData(data.plot_data);
-        setIsLoading(false);
-        console.log("Data: ", output);
-      });
-  };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
+    <div className="flex min-h-screen flex-col items-center justify-around p-24">
       <div className="relative flex place-items-center">
         <div className="text-2xl font-semibold relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert">
-          <h1>Centroid Analysis</h1>
+          <h1>SimScore</h1>
         </div>
       </div>
-
-      <div className="w-full space-y-4">
-        <form className="space-y-2" onSubmit={handleSubmit}>
-          <label
-            htmlFor={"answer"}
-            className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-          >
-            Type or upload your answer(s). Separate them by ⏎ new lines
-          </label>
-          <Textarea
-            id="answer"
-            value={input}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setInput(e.target.value)
-            }
-            onDropRead={(text: string) => setInput(text)}
-            textareaProps={{
-              cols: 80,
-              rows: 8,
-              placeholder: "Enter your answers, or upload a file here...",
-              className: "!bg-white border-2 rounded-lg p-2",
-            }}
-          />
-          <button
-            type="submit"
-            onClick={handleSubmit}
-            className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
-          >
-            Process
-          </button>
-        </form>
-
-        {isLoading && (
-          <div className="flex justify-center items-center">
-            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
-          </div>
-        )}
-
-        {plotData && !isLoading && (
-          <div>
-            <hr />
-            <div className="pt-4 space-y-2">
-              <h2>Results:</h2>
-
-              <div className="p-8">
-                <ClusterChart plotData={plotData} />
-              </div>
-              <div className="p-8">
-                <BubbleChart plotData={plotData} />
-              </div>
-              
-              {output && (
-                <div className="p-8">
-                  <DragDrop data={output} />
-                </div>
-              )}
-              
-              <div className="space-y-2">
-                <table>
-                  <caption>Similarity Details</caption>
-                  <thead>
-                    <tr key="header" className="px-4">
-                      <td className="px-4">#</td>
-                      <td className="px-4">Idea</td>
-                      <td className="px-4">Similarity</td>
-                      <td className="px-4">Distance</td>
-                    </tr>
-                  </thead>
-                  <tbody>
-                  {output?.ideas.map((idea, i) => (
-                    <tr key={i} className="px-4">
-                      <td className="px-4">{i + 1}</td>
-                      <td className="px-4">{idea}</td>
-                      <td className="px-4">
-                        {output.similarity[i].toFixed(2)}
-                      </td>
-                      <td className="px-4">
-                        {output.distance[i].toFixed(2)}
-                      </td>
-                    </tr>
-                  ))}
-                    </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
+      <div className="flex justify-center space-x-4">
+        <Link href="/create" className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+          Create Analysis
+        </Link>
+        <Link href="/manage" className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+          Manage Submissions
+        </Link>
       </div>
-    </main>
+    </div>
   );
 }

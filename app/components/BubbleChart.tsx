@@ -1,4 +1,5 @@
-import {Chart, ChartData, Point, BubbleDataPoint, ChartOptions } from 'chart.js/auto';
+import React from 'react'
+import { Chart, ChartData, BubbleDataPoint, ChartOptions, CategoryScale } from 'chart.js/auto';
 import { PlotData } from "../constants"
 import { Bubble } from "react-chartjs-2";
 import ChartDataLabels from 'chartjs-plugin-datalabels';
@@ -8,9 +9,10 @@ interface BubbleChartProps {
   plotData: PlotData;
 }
 
-export default function BubbleChart({ plotData }: BubbleChartProps) {
+const BubbleChart = React.memo(({ plotData }: BubbleChartProps) => {
   Chart.register(annotationPlugin);
   Chart.register(ChartDataLabels);
+  Chart.register(CategoryScale);
   const { scatter_points, marker_sizes, ideas, pairwise_similarity } = plotData;
   const minSize = 2;
   const maxSize = Math.max(15, marker_sizes.slice(-1)[0][0]);
@@ -53,7 +55,7 @@ export default function BubbleChart({ plotData }: BubbleChartProps) {
           if (value.label == scatter_points.length - 1) {
             return "Centroid";
           }
-          return value.label+1;
+          return value.label + 1;
         },
       }
     }]
@@ -99,7 +101,7 @@ export default function BubbleChart({ plotData }: BubbleChartProps) {
             if (dataPoint.label == scatter_points.length - 1) {
               return "Centroid"
             }
-            return `Idea ${dataPoint.label+ 1}: ${plotData.ideas[dataPoint.label]}`;
+            return `Idea ${dataPoint.label + 1}: ${plotData.ideas[dataPoint.label]}`;
           }
         }
       }
@@ -128,4 +130,6 @@ export default function BubbleChart({ plotData }: BubbleChartProps) {
       />
     </div>
   );
-}
+});
+
+export default BubbleChart;
