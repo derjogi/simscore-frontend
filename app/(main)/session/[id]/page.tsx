@@ -53,46 +53,6 @@ export default function SessionPage({ params }: { params: { id: string } }) {
         <div>
           <hr />
           <div className="pt-4 space-y-2">
-            <h2>{"Re-Rank this feedback, and submit when you're done:"}</h2>
-
-            {ideasAndSimScores && (
-              <>
-                <div className="p-8">
-                  <DragDrop
-                    data={ideasAndSimScores}
-                    onUpdate={handleDragDropUpdate}
-                  />
-                </div>
-                {showSubmitButton ? (
-                  <div className="p-8">
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Enter your name"
-                      className="border rounded px-2 py-1 mr-2"
-                    />
-
-                    <button
-                      className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50"
-                      onClick={() => {
-                        console.log("Pushed the button! Name: ", name);
-                        submitNewRanking(name);
-                      }}
-                      disabled={!name && !showSubmitButton}
-                    >
-                      Submit
-                    </button>
-                  </div>
-                ) : (
-                  <div>Already Submitted</div>
-                )}
-              </>
-            )}
-
-            <div className="p-8">
-              <ClusterChart plotData={plotData} />
-            </div>
             <div className="p-8">
               <BubbleChart plotData={plotData} />
             </div>

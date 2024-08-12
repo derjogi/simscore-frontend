@@ -4,7 +4,7 @@ import Link from 'next/link'
 
 export default function Dashboard() {
   const [sessions, setSessions] = useState([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const fetchSessions = async () => {
