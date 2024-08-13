@@ -41,6 +41,19 @@ export default function SessionPage({ params }: { params: { id: string } }) {
     console.log("Updated ideas: ", updatedOutput);
   };
 
+  const [openDetail, setOpenDetail] = useState<string | null>(null);
+  const [showPopup, setShowPopup] = useState(false);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+
+  const handleRowClick = (idea: string, event: React.MouseEvent) => {
+    setMousePosition({ x: event.clientX, y: event.clientY });
+    navigator.clipboard.writeText(idea).then(() => {
+      setShowPopup(true);
+      setTimeout(() => setShowPopup(false), 2000); // Hide popup after 2 seconds
+    });
+  };
+  
   return (
     <div>
       {isLoading && (
@@ -48,47 +61,88 @@ export default function SessionPage({ params }: { params: { id: string } }) {
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
         </div>
       )}
-
+  
       {plotData && !isLoading && (
-        <div>
-          <hr />
-          <div className="pt-4 space-y-2">
-            <div className="p-8">
-              <BubbleChart plotData={plotData} />
-            </div>
-
-            <div className="space-y-2">
-              <table>
-                <caption>Similarity Details</caption>
-                <thead>
-                  <tr key="header" className="px-4">
-                    <td className="px-4">#</td>
-                    <td className="px-4">Idea</td>
-                    <td className="px-4">Similarity</td>
-                    <td className="px-4">Distance</td>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ideasAndSimScores?.ideas.map((idea, i) => (
-                    <tr key={i} className="px-4">
-                      <td className="px-4">{i + 1}</td>
-                      <td className="px-4">{idea}</td>
-                      <td className="px-4">
-                        {ideasAndSimScores.similarity[i].toFixed(2)}
-                      </td>
-                      <td className="px-4">
-                        {ideasAndSimScores.distance[i].toFixed(2)}
-                      </td>
+        <div className="dashboard-container flex flex-wrap transition-all duration-300">
+          <div className={`p-4 transition-all duration-300 ${openDetail === 'chart' ? 'w-4/5' : openDetail === 'table' ? 'w-1/5' : 'w-1/2'}`}>
+            <details 
+              className="bg-white shadow-md rounded-lg"
+              open={openDetail === 'chart'}
+              onToggle={(e) => {
+                if (e.currentTarget.open) {
+                  setOpenDetail('chart');
+                } else if (openDetail === 'chart') {
+                  setOpenDetail(null);
+                }
+              }}
+            >
+              <summary className="cursor-pointer p-4 font-bold">Bubble Chart</summary>
+              <div className="p-4">
+                <BubbleChart plotData={plotData} />
+              </div>
+            </details>
+          </div>
+          
+          <div className={`p-4 transition-all duration-300 ${openDetail === 'table' ? 'w-4/5' : openDetail === 'chart' ? 'w-1/5' : 'w-1/2'}`}>
+            <details 
+              className="bg-white shadow-md rounded-lg"
+              open={openDetail === 'table'}
+              onToggle={(e) => {
+                if (e.currentTarget.open) {
+                  setOpenDetail('table');
+                } else if (openDetail === 'table') {
+                  setOpenDetail(null);
+                }
+              }}
+            >
+              <summary className="cursor-pointer p-4 font-bold">Similarity Details</summary>
+              <div className="p-4 overflow-x-auto">
+                <table>
+                  <caption>Similarity Details</caption>
+                  <thead>
+                    <tr key="header" className="px-4">
+                      <td className="px-4">#</td>
+                      <td className="px-4">Idea</td>
+                      <td className="px-4">Similarity</td>
+                      <td className="px-4">Distance</td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {ideasAndSimScores?.ideas.map((idea, i) => (
+                      <tr key={i}
+                        className="px-4 hover:bg-slate-100 cursor-copy"
+                        onClick={(e) => handleRowClick(idea, e)}
+                      >
+                        <td className="px-4">{i + 1}</td>
+                        <td className="px-4">{idea}</td>
+                        <td className="px-4">
+                          {ideasAndSimScores.similarity[i].toFixed(2)}
+                        </td>
+                        <td className="px-4">
+                          {ideasAndSimScores.distance[i].toFixed(2)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {showPopup && (
+                  <div
+                    className="fixed bg-green-500 text-white px-2 py-1 rounded shadow text-sm"
+                    style={{ 
+                      left: `${mousePosition.x + 15}px`, 
+                      top: `${mousePosition.y + 12}px` 
+                    }}
+                  >
+                    Copied to clipboard!
+                  </div>
+                )}
+              </div>
+            </details>
           </div>
         </div>
       )}
     </div>
-  );
+  );  
 
   async function submitNewRanking(name: string) {
     console.log("Submitting reranked data.");
