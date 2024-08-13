@@ -1,12 +1,9 @@
 "use client";
 import BubbleChart from "@/app/components/BubbleChart";
-import ClusterChart from "@/app/components/ClusterChart";
-import DragDrop from "@/app/components/DragDrop";
 import { IdeasAndSimScores, PlotData } from "@/app/constants";
-import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faDownLeftAndUpRightToCenter, faEnvelope, faUpRightAndDownLeftFromCenter } from '@fortawesome/free-solid-svg-icons'
+import { faCompress, faExpand } from '@fortawesome/free-solid-svg-icons'
 
 
 export default function SessionPage({ params }: { params: { id: string } }) {
@@ -14,8 +11,6 @@ export default function SessionPage({ params }: { params: { id: string } }) {
     useState<IdeasAndSimScores>();
   const [plotData, setPlotData] = useState<PlotData>();
   const [isLoading, setIsLoading] = useState(true);
-  const [showSubmitButton, setShowSubmitButton] = useState(true);
-  const [name, setName] = useState("");
 
   useEffect(() => {
     const fetchSessionData = async () => {
@@ -40,7 +35,6 @@ export default function SessionPage({ params }: { params: { id: string } }) {
       ...(prevState ?? { similarity: [], distance: [] }),
       ideas: updatedOutput,
     }));
-    setShowSubmitButton(true);
     console.log("Updated ideas: ", updatedOutput);
   };
 
@@ -49,8 +43,8 @@ export default function SessionPage({ params }: { params: { id: string } }) {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const chartRef = useRef<HTMLDivElement>(null);
 
-  const expand = <FontAwesomeIcon icon={faUpRightAndDownLeftFromCenter} />
-  const collapse = <FontAwesomeIcon icon={faDownLeftAndUpRightToCenter} />
+  const expand = <FontAwesomeIcon icon={faExpand} />
+  const collapse = <FontAwesomeIcon icon={faCompress} />
 
   const updateDivHeight = () => {
     if (chartRef.current) {
@@ -198,30 +192,4 @@ export default function SessionPage({ params }: { params: { id: string } }) {
       )}
     </div>
   );
-
-  async function submitNewRanking(name: string) {
-    console.log("Submitting reranked data.");
-    const host = process.env.SIMSCORE_API;
-    try {
-      const response = await fetch(`${host}/session/${params.id}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        redirect: "follow",
-        body: JSON.stringify({ name: name, ideasAndSimScores }),
-      });
-      if (response.ok) {
-        setShowSubmitButton(false);
-        console.log("Successfully submitted data.");
-      } else {
-        setShowSubmitButton(true);
-        console.log("Na uh, something went wrong: ", response.status);
-        throw new Error("Failed to submit data: ", await response.json());
-      }
-    } catch (error) {
-      console.error("Error:", error);
-      alert("Failed to submit data.");
-    }
-  }
 }
