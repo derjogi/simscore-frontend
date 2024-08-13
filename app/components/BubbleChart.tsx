@@ -122,13 +122,13 @@ const BubbleChart = React.memo(({ plotData }: BubbleChartProps) => {
   } as ChartOptions<"bubble">;
 
   return (
-    <div className="chart-container">
+    <>
       <h2 className='text-center'>Similarity Score</h2>
       <Bubble
         data={data}
         options={options}
       />
-    </div>
+    </>
   );
 });
 

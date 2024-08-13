@@ -4,7 +4,10 @@ import ClusterChart from "@/app/components/ClusterChart";
 import DragDrop from "@/app/components/DragDrop";
 import { IdeasAndSimScores, PlotData } from "@/app/constants";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faDownLeftAndUpRightToCenter, faEnvelope, faUpRightAndDownLeftFromCenter } from '@fortawesome/free-solid-svg-icons'
+
 
 export default function SessionPage({ params }: { params: { id: string } }) {
   const [ideasAndSimScores, setIdeasAndSimScores] =
@@ -44,7 +47,23 @@ export default function SessionPage({ params }: { params: { id: string } }) {
   const [openDetail, setOpenDetail] = useState<string | null>(null);
   const [showPopup, setShowPopup] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const chartRef = useRef<HTMLDivElement>(null);
 
+  const expand = <FontAwesomeIcon icon={faUpRightAndDownLeftFromCenter} />
+  const collapse = <FontAwesomeIcon icon={faDownLeftAndUpRightToCenter} />
+
+  const updateDivHeight = () => {
+    if (chartRef.current) {
+      const width = chartRef.current.offsetWidth;
+      chartRef.current.style.height = `${1.2 * width}px`;
+    }
+  };
+
+  useEffect(() => {
+    updateDivHeight();
+    window.addEventListener("resize", updateDivHeight);
+    return () => window.removeEventListener("resize", updateDivHeight);
+  }, []);
 
   const handleRowClick = (idea: string, event: React.MouseEvent) => {
     setMousePosition({ x: event.clientX, y: event.clientY });
@@ -53,7 +72,7 @@ export default function SessionPage({ params }: { params: { id: string } }) {
       setTimeout(() => setShowPopup(false), 2000); // Hide popup after 2 seconds
     });
   };
-  
+
   return (
     <div>
       {isLoading && (
@@ -61,88 +80,124 @@ export default function SessionPage({ params }: { params: { id: string } }) {
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
         </div>
       )}
-  
+
       {plotData && !isLoading && (
-        <div className="dashboard-container flex flex-wrap transition-all duration-300">
-          <div className={`p-4 transition-all duration-300 ${openDetail === 'chart' ? 'w-4/5' : openDetail === 'table' ? 'w-1/5' : 'w-1/2'}`}>
-            <details 
-              className="bg-white shadow-md rounded-lg"
-              open={openDetail === 'chart'}
-              onToggle={(e) => {
-                if (e.currentTarget.open) {
-                  setOpenDetail('chart');
-                } else if (openDetail === 'chart') {
-                  setOpenDetail(null);
-                }
-              }}
+        <>
+          <div className="flex flex-wrap align-middle justify-center transition-all duration-300">
+            <div
+              ref={chartRef}
+              className={`relative p-4 m-2 bg-white shadow-md rounded-lg transition-all duration-300 ${
+                openDetail === "table"
+                  ? "w-4/5 h-dvh"
+                  : openDetail === "chart"
+                  ? "w-1/6 h-96"
+                  : "w-2/5 h-96"
+              }`}
             >
-              <summary className="cursor-pointer p-4 font-bold">Bubble Chart</summary>
-              <div className="p-4">
-                <BubbleChart plotData={plotData} />
-              </div>
-            </details>
-          </div>
-          
-          <div className={`p-4 transition-all duration-300 ${openDetail === 'table' ? 'w-4/5' : openDetail === 'chart' ? 'w-1/5' : 'w-1/2'}`}>
-            <details 
-              className="bg-white shadow-md rounded-lg"
-              open={openDetail === 'table'}
-              onToggle={(e) => {
-                if (e.currentTarget.open) {
-                  setOpenDetail('table');
-                } else if (openDetail === 'table') {
-                  setOpenDetail(null);
-                }
-              }}
-            >
-              <summary className="cursor-pointer p-4 font-bold">Similarity Details</summary>
-              <div className="p-4 overflow-x-auto">
-                <table>
-                  <caption>Similarity Details</caption>
-                  <thead>
-                    <tr key="header" className="px-4">
-                      <td className="px-4">#</td>
-                      <td className="px-4">Idea</td>
-                      <td className="px-4">Similarity</td>
-                      <td className="px-4">Distance</td>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {ideasAndSimScores?.ideas.map((idea, i) => (
-                      <tr key={i}
-                        className="px-4 hover:bg-slate-100 cursor-copy"
-                        onClick={(e) => handleRowClick(idea, e)}
-                      >
-                        <td className="px-4">{i + 1}</td>
-                        <td className="px-4">{idea}</td>
-                        <td className="px-4">
-                          {ideasAndSimScores.similarity[i].toFixed(2)}
-                        </td>
-                        <td className="px-4">
-                          {ideasAndSimScores.distance[i].toFixed(2)}
-                        </td>
+              {openDetail === "table" && (
+                <button
+                  className="absolute top-2 right-2 p-2 bg-gray-200 rounded-full"
+                  onClick={() => setOpenDetail(null)}
+                >
+                  {collapse}
+                </button>
+              )}
+              <div className="flex overflow-scroll h-full">
+                <div className="p-4">
+                  <table>
+                    <caption>Similarity Details</caption>
+                    <thead>
+                      <tr key="header" className="px-4">
+                        <td className="px-4">#</td>
+                        <td className="px-4">Idea</td>
+                        <td className="px-4">Similarity</td>
+                        <td className="px-4">Distance</td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {showPopup && (
-                  <div
-                    className="fixed bg-green-500 text-white px-2 py-1 rounded shadow text-sm"
-                    style={{ 
-                      left: `${mousePosition.x + 15}px`, 
-                      top: `${mousePosition.y + 12}px` 
-                    }}
-                  >
-                    Copied to clipboard!
-                  </div>
-                )}
+                    </thead>
+                    <tbody>
+                      {ideasAndSimScores?.ideas.map((idea, i) => (
+                        <tr
+                          key={i}
+                          className="px-4 hover:bg-slate-100 cursor-copy"
+                          onClick={(e) => handleRowClick(idea, e)}
+                        >
+                          <td className="px-4">{i + 1}</td>
+                          <td className="px-4">{idea}</td>
+                          <td className="px-4">
+                            {ideasAndSimScores.similarity[i].toFixed(2)}
+                          </td>
+                          <td className="px-4">
+                            {ideasAndSimScores.distance[i].toFixed(2)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {showPopup && (
+                    <div
+                      className="fixed bg-green-500 text-white px-2 py-1 rounded shadow text-sm"
+                      style={{
+                        left: `${mousePosition.x + 15}px`,
+                        top: `${mousePosition.y + 12}px`,
+                      }}
+                    >
+                      Copied to clipboard!
+                    </div>
+                  )}
+                </div>
               </div>
-            </details>
+
+              <button
+                className="absolute bottom-2 right-2 p-2 bg-gray-200 rounded-full"
+                onClick={() =>
+                  setOpenDetail(openDetail === "table" ? null : "table")
+                }
+              >
+                {openDetail === "table"
+                  ? collapse
+                  : expand
+                }
+              </button>
+            </div>
+            <div
+              ref={chartRef}
+              className={`relative p-4 m-2 bg-white shadow-md rounded-lg transition-all duration-300 ${
+                openDetail === "chart"
+                  ? "w-4/5"
+                  : openDetail === "table"
+                  ? "w-1/6"
+                  : "w-2/5"
+              }`}
+            >
+              {openDetail === "chart" && (
+                <button
+                  className="absolute top-2 right-2 p-2 bg-gray-200 rounded-full"
+                  onClick={() =>
+                    setOpenDetail(null)
+                  }
+                >
+                  {collapse}
+                </button>
+              )}
+              <div className="w-full flex items-center justify-center">
+                <div className="p-4 w-full h-full">
+                  <BubbleChart plotData={plotData} />
+                </div>
+              </div>
+              <button
+                className="absolute bottom-2 right-2 p-2 bg-gray-200 rounded-full"
+                onClick={() =>
+                  setOpenDetail(openDetail === "chart" ? null : "chart")
+                }
+              >
+                {openDetail === "chart" ? collapse : expand}
+              </button>
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
-  );  
+  );
 
   async function submitNewRanking(name: string) {
     console.log("Submitting reranked data.");
