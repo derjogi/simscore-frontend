@@ -84,8 +84,8 @@ export default function SessionPage({ params }: { params: { id: string } }) {
                 openDetail === "table"
                   ? "w-4/5 h-dvh"
                   : openDetail === "chart"
-                  ? "w-1/6 h-96"
-                  : "w-2/5 h-96"
+                  ? "w-1/6 h-56"
+                  : "w-2/5 h-[500px]"
               }`}
             >
               {openDetail === "table" && (
@@ -159,8 +159,8 @@ export default function SessionPage({ params }: { params: { id: string } }) {
                 openDetail === "chart"
                   ? "w-4/5"
                   : openDetail === "table"
-                  ? "w-1/6"
-                  : "w-2/5"
+                  ? "w-1/6 h-56"
+                  : "w-2/5 h-[500px]"
               }`}
             >
               {openDetail === "chart" && (
