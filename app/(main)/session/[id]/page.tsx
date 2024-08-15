@@ -13,22 +13,41 @@ export default function SessionPage({ params }: { params: { id: string } }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchSessionData = async () => {
-      const host = process.env.SIMSCORE_API;
-      const response = await fetch(`${host}/session/${params.id}`);
-      if (!response.ok) {
-        console.log(`HTTP error! status: ${response.status}`);
-        setIsLoading(false);
-      }
-      const data = await response.json();
-      console.log(`Data in session/${params.id} :`, data);
+    setIsLoading(true);
+    const storedData = localStorage.getItem(`sessionData_${params.id}`);
+    if (storedData) {
+      const data = JSON.parse(storedData);
       setIdeasAndSimScores(data.results);
       setPlotData(data.plot_data);
       setIsLoading(false);
-    };
-    setIsLoading(true);
-    fetchSessionData();
+    } else {
+      console.log("No data found for session ID:", params.id);
+      // Fallback to fetching data if not found in localStorage
+      fetchSessionData();
+      if (!plotData) {
+        throw new Error("Aww, unfortunately this data doesn't exist or you don't have permissions.");
+      }
+    }
   }, [params.id]);
+
+  // useEffect(() => {
+  //   setIsLoading(true);
+  //   fetchSessionData();
+  // }, [params.id]);
+
+  const fetchSessionData = async () => {
+    const host = process.env.SIMSCORE_API;
+    const response = await fetch(`${host}/session/${params.id}`);
+    if (!response.ok) {
+      console.log(`HTTP error! status: ${response.status}`);
+      setIsLoading(false);
+    }
+    const data = await response.json();
+    console.log(`Data in session/${params.id} :`, data);
+    setIdeasAndSimScores(data.results);
+    setPlotData(data.plot_data);
+    setIsLoading(false);
+  };
 
   const handleDragDropUpdate = (updatedOutput: string[]) => {
     setIdeasAndSimScores((prevState) => ({
