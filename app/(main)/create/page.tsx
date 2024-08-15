@@ -36,10 +36,8 @@ export default function Create() {
         console.log("Data: ", data);
         setIsLoading(false);
         setId(data.id);
-        return data.id;
-      })
-      .then((id) => {
-        router.push(`/session/${id}`);
+        localStorage.setItem(`sessionData_${data.id}`, JSON.stringify(data));
+        router.push(`/session/${data.id}`);
       })
   };
 

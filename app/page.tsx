@@ -1,14 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import BubbleChart from "./components/BubbleChart";
-import ClusterChart from "./components/ClusterChart";
-import { PlotData, IdeasAndSimScores } from "./constants";
-import Textarea from "react-dropzone-textarea";
-import DragDrop from "./components/DragDrop";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
+
+  // We don't have a 'manage' page right now, so just always go directly to the 'create' page instead.
+  useRouter().push("/create");
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-around p-24">
