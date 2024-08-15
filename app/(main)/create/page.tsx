@@ -19,7 +19,7 @@ export default function Create() {
     e.preventDefault();
     setIsLoading(true);
     const host = process.env.SIMSCORE_API;
-    const processAPI = host + "/process";
+    const processAPI = host + "/process?store_in_db=true";
 
     let ideas = input.split("\n").filter((idea) => idea.trim() !== "");
 
