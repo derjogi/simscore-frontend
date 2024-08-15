@@ -160,7 +160,7 @@ export default function SessionPage({ params }: { params: { id: string } }) {
                   ? "w-4/5"
                   : openDetail === "table"
                   ? "w-1/6 h-56"
-                  : "w-2/5 h-[500px]"
+                  : "h-[500px] w-[450px]"
               }`}
             >
               {openDetail === "chart" && (
