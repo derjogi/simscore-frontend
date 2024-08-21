@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from 'next/navigation';
+import { useRouter } from "next/navigation";
 import { PlotData, IdeasAndSimScores } from "@/constants";
 import Textarea from "react-dropzone-textarea";
 import Link from "next/link";
@@ -44,14 +44,150 @@ export default function Create() {
         setId(data.id);
         localStorage.setItem(`sessionData_${data.id}`, JSON.stringify(data));
         router.push(`/session/${data.id}`);
-      })
+      });
+  };
+
+  type IdeaValidity = {
+    idea: string;
+    // These are error strings, indicating what is wrong with the corresponding qualifier.
+    // If the idea is valid, these are all empty strings.
+    length: string;
+    sentiment?: string;
+    singlePointFocus?: string;
+  };
+
+  // For individual input fields:
+  const [ideas, setIdeas] = useState<string[]>([""]);
+  const [ideaValidity, setIdeaValidity] = useState<IdeaValidity[]>([]);
+
+  const addEmptyIdea = () => {
+    setIdeas([...ideas, ""]);
+  };
+
+  const removeIdea = (index: number) => {
+    const newIdeas = [...ideas];
+    newIdeas.splice(index, 1);
+    setIdeas(newIdeas);
+
+    const newIdeaValidity = [...ideaValidity];
+    newIdeaValidity.splice(index, 1);
+    setIdeaValidity(newIdeaValidity);
+  };
+
+  const updateIdea = (index: number, value: string) => {
+    const newIdeas = [...ideas];
+    newIdeas[index] = value;
+    setIdeas(newIdeas);
+  };
+
+  const addNewIdeaOnEnter = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      addEmptyIdea();
+    }
+  };
+
+  const validateIdea = (index: number, idea: string) => {
+    console.log("Validating idea: ", idea);
+    const newIdeaValidity = [...ideaValidity];
+    const lengthValidity =
+      idea.trim().length < 70
+        ? "Idea must be at least 70 characters long."
+        : idea.trim().length > 150
+        ? "Idea must be at most 150 characters long."
+        : "";
+
+    newIdeaValidity[index] = {
+      idea: idea,
+      length: lengthValidity,
+    };
+    setIdeaValidity(newIdeaValidity);
+    console.log("Idea validity: ", newIdeaValidity);
+    if (lengthValidity.length == 0) {
+      queryForIdeaValidity(idea, index);
+    }
+  };
+
+  function queryForIdeaValidity(idea: string, index: number) {
+    const host = process.env.SIMSCORE_API;
+    const validateAPI = host + "/validate";
+    const body = JSON.stringify({ idea: idea });
+    console.log("Querying for idea validity: ", body);
+    fetch(validateAPI, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      redirect: "follow",
+      body: body,
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("Data: ", data);
+        const prevIdeaValidity = [...ideaValidity];
+        prevIdeaValidity[index] = {
+          ...prevIdeaValidity[index],
+          sentiment: data.error.sentimentError,
+          singlePointFocus: data.error.singlePointFocusError,
+        };
+        setIdeaValidity(prevIdeaValidity);
+      });
+  }
+
+  const getValidityError = (index: number) => {
+    const validity = ideaValidity[index];
+    if (!validity) return null;
+    if (validity.length) return validity.length;
+    if (validity.sentiment) return validity.sentiment;
+    if (validity.singlePointFocus) return validity.singlePointFocus;
+
+    return null;
   };
 
   return (
     <>
       {!plotData && (
-        // Show a form if plotData isn't set yet:
         <div className="space-y-4">
+          {ideas.map((idea, index) => (
+            <>
+              <div key={index} className="flex items-center space-x-2">
+                <input
+                  type="text"
+                  value={idea}
+                  onChange={(e) => updateIdea(index, e.target.value)}
+                  onKeyUp={(e) => addNewIdeaOnEnter(e)}
+                  onBlur={(e) => validateIdea(index, e.target.value)}
+                  className={`flex-grow p-2 border rounded-lg ${
+                    getValidityError(index) ? "border-red-500" : "border-gray-300"
+                  }`}
+                  placeholder="Enter an idea"
+                  autoFocus={index === ideas.length - 1}
+                />
+                {index === ideas.length - 1 && (
+                  <button
+                    onClick={addEmptyIdea}
+                    className="p-2 bg-blue-500 text-white rounded-lg"
+                  >
+                    +
+                  </button>
+                )}
+                {ideas.length > 1 && (
+                  <button
+                    onClick={() => removeIdea(index)}
+                    className="p-2 bg-red-500 text-white rounded-lg"
+                  >
+                    -
+                  </button>
+                )}
+              </div>
+              {getValidityError(index) && (
+                <p className="text-red-500 text-sm">
+                  {getValidityError(index)}
+                </p>
+              )}
+            </>
+          ))}
+
           <form className="space-y-2" onSubmit={handleSubmit}>
             <label
               htmlFor={"answer"}
