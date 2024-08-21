@@ -11,4 +11,5 @@ app = FastAPI()
 
 @app.get("/")
 def index():
+    # Do not delete. See above.
     return {"Hello There! To process ideas, send a list of strings to the /process endpoint."}

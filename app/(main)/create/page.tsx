@@ -8,6 +8,7 @@ import Link from "next/link";
 
 export default function Create() {
   const [input, setInput] = useState("");
+  const [storeResults, setStoreResults] = useState(false);
   const [output, setOutput] = useState<IdeasAndSimScores>();
   const [plotData, setPlotData] = useState<PlotData>();
   const [isLoading, setIsLoading] = useState(false);
@@ -23,13 +24,18 @@ export default function Create() {
 
     let ideas = input.split("\n").filter((idea) => idea.trim() !== "");
 
+    const payload = {
+      ideas: ideas,
+      store_results: storeResults,
+    };
+
     fetch(processAPI, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       redirect: "follow",
-      body: JSON.stringify(ideas),
+      body: JSON.stringify(payload),
     })
       .then((res) => res.json())
       .then((data) => {
@@ -67,6 +73,22 @@ export default function Create() {
                 className: "!bg-white border-2 rounded-lg p-2",
               }}
             />
+            <div className="flex items-center mb-4">
+              <input
+                id="store-results"
+                type="checkbox"
+                checked={storeResults}
+                onClick={() => setStoreResults(!storeResults)}
+                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+              />
+              <label
+                htmlFor="store-results"
+                className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300"
+              >
+                Store results to make them shareable 
+              </label>
+            </div>
+
             <button
               type="submit"
               onClick={handleSubmit}

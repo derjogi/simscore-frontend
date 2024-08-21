@@ -24,9 +24,6 @@ export default function SessionPage({ params }: { params: { id: string } }) {
       console.log("No data found for session ID:", params.id);
       // Fallback to fetching data if not found in localStorage
       fetchSessionData();
-      if (!plotData) {
-        throw new Error("Aww, unfortunately this data doesn't exist or you don't have permissions.");
-      }
     }
   }, [params.id]);
 
@@ -37,15 +34,20 @@ export default function SessionPage({ params }: { params: { id: string } }) {
 
   const fetchSessionData = async () => {
     const host = process.env.SIMSCORE_API;
-    const response = await fetch(`${host}/session/${params.id}`);
-    if (!response.ok) {
-      console.log(`HTTP error! status: ${response.status}`);
-      setIsLoading(false);
+    console.log("Fetching data for session ID:", params.id);
+    try { 
+      const response = await fetch(`${host}/session/${params.id}`);
+      if (!response.ok) {
+        console.log(`HTTP error! status: ${response.status}`);
+        setIsLoading(false);
+      }
+      const data = await response.json();
+      console.log(`Data in session/${params.id} :`, data);
+      setIdeasAndSimScores(data.results);
+      setPlotData(data.plot_data);
+    } catch (error) {
+      console.log("Error fetching data:", error);
     }
-    const data = await response.json();
-    console.log(`Data in session/${params.id} :`, data);
-    setIdeasAndSimScores(data.results);
-    setPlotData(data.plot_data);
     setIsLoading(false);
   };
 
@@ -208,6 +210,11 @@ export default function SessionPage({ params }: { params: { id: string } }) {
             </div>
           </div>
         </>
+      )}
+      {!isLoading && !plotData && (
+        <div className="flex justify-center items-center">
+          Aww, sorry. We couldn't find any data for that session.
+         </div>
       )}
     </div>
   );
