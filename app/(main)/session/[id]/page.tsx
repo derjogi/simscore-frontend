@@ -213,7 +213,7 @@ export default function SessionPage({ params }: { params: { id: string } }) {
       )}
       {!isLoading && !plotData && (
         <div className="flex justify-center items-center">
-          Aww, sorry. We couldn't find any data for that session.
+          {"Aww, sorry. We couldn't find any data for that session."}
          </div>
       )}
     </div>
