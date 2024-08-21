@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { PlotData, IdeasAndSimScores } from "@/constants";
 import Textarea from "react-dropzone-textarea";
-import Link from "next/link";
 
 export default function Create() {
   const [input, setInput] = useState("");
@@ -52,9 +51,21 @@ export default function Create() {
     // These are error strings, indicating what is wrong with the corresponding qualifier.
     // If the idea is valid, these are all empty strings.
     length: string;
-    sentiment?: string;
-    singlePointFocus?: string;
+    sentiment?: IndividualRating;
+    singlePointFocus?: IndividualRating;
   };
+
+type IndividualRating = {
+  quality: number
+  message: string
+}
+
+type IdeaRating = {
+  rating: {
+    singlePointFocus: IndividualRating
+    sentiment: IndividualRating
+  }
+}
 
   // For individual input fields:
   const [ideas, setIdeas] = useState<string[]>([""]);
@@ -75,6 +86,7 @@ export default function Create() {
   };
 
   const updateIdea = (index: number, value: string) => {
+    validateFast(index, value);
     const newIdeas = [...ideas];
     newIdeas[index] = value;
     setIdeas(newIdeas);
@@ -88,12 +100,18 @@ export default function Create() {
   };
 
   const validateIdea = (index: number, idea: string) => {
-    console.log("Validating idea: ", idea);
+    const lengthValidity = validateFast(index, idea);
+    if (lengthValidity.length == 0) {
+      queryForIdeaValidity(idea, index);
+    }
+  };
+
+  const validateFast = (index: number, idea: string) =>{
+    console.log(`Validating idea ${index}: `, idea);
     const newIdeaValidity = [...ideaValidity];
-    const lengthValidity =
-      idea.trim().length < 70
-        ? "Idea must be at least 70 characters long."
-        : idea.trim().length > 150
+    const lengthValidity = idea.trim().length < 60
+      ? "Idea must be at least 60 characters long."
+      : idea.trim().length > 150
         ? "Idea must be at most 150 characters long."
         : "";
 
@@ -103,10 +121,8 @@ export default function Create() {
     };
     setIdeaValidity(newIdeaValidity);
     console.log("Idea validity: ", newIdeaValidity);
-    if (lengthValidity.length == 0) {
-      queryForIdeaValidity(idea, index);
-    }
-  };
+    return lengthValidity;
+  }
 
   function queryForIdeaValidity(idea: string, index: number) {
     const host = process.env.SIMSCORE_API;
@@ -121,14 +137,25 @@ export default function Create() {
       redirect: "follow",
       body: body,
     })
-      .then((res) => res.json())
-      .then((data) => {
+      .then((res) => {
+        try {
+          const parsed = res.json();
+          return parsed;
+        } catch (error) {
+          console.error("Error parsing JSON:", error);
+          throw error;
+        }
+      })
+      .then((stringData) => {
+        const data: IdeaRating = JSON.parse(stringData);
         console.log("Data: ", data);
+        console.log("Rating Manual: ", data["rating"]);
+        console.log("Rating: ", data.rating);
         const prevIdeaValidity = [...ideaValidity];
         prevIdeaValidity[index] = {
           ...prevIdeaValidity[index],
-          sentiment: data.error.sentimentError,
-          singlePointFocus: data.error.singlePointFocusError,
+          sentiment: data.rating.sentiment,
+          singlePointFocus: data.rating.singlePointFocus,
         };
         setIdeaValidity(prevIdeaValidity);
       });
@@ -138,8 +165,12 @@ export default function Create() {
     const validity = ideaValidity[index];
     if (!validity) return null;
     if (validity.length) return validity.length;
-    if (validity.sentiment) return validity.sentiment;
-    if (validity.singlePointFocus) return validity.singlePointFocus;
+    if (validity.sentiment && validity.sentiment.quality < 5 ) {
+      return validity.sentiment.message;
+    }
+    if (validity.singlePointFocus && validity.singlePointFocus.quality < 5 ) {
+      return validity.singlePointFocus.message;
+    }
 
     return null;
   };
