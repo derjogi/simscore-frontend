@@ -1,25 +1,31 @@
 import React, { useState } from 'react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { EvaluatedIdea } from '../constants';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { IdeasAndSimScores } from '../constants';
 
 interface DragDropProps {
-  data: IdeasAndSimScores;
+  data: EvaluatedIdea[];
+  summaries: string[];
   onUpdate: (updatedData: string[]) => void;
 }
 
+interface ClusteredListProps {
+  ideas: EvaluatedIdea[];
+  summaries: Record<number, string>;
+}
+
+
 interface SortableItemProps {
   id: string;
-  content: string;
-  similarity: number;
-  distance: number;
+  idea?: EvaluatedIdea;
+  summary?: string;
   originalIndex: number;
   currentIndex: number;
 }
 
-const SortableItem: React.FC<SortableItemProps> = ({ id, content, similarity, distance, originalIndex, currentIndex }) => {
+const SortableItem: React.FC<SortableItemProps> = ({ id, idea, summary, originalIndex, currentIndex }) => {
   const {
     attributes,
     listeners,
@@ -47,25 +53,28 @@ const SortableItem: React.FC<SortableItemProps> = ({ id, content, similarity, di
           )}
         </div>
         <div className="flex-grow">
-          <span className="font-medium">{content}</span>
+          <span className="font-medium">{idea?.idea || summary}</span>
         </div>
-        <div className="text-sm text-gray-500 text-right md:flex md:flex-col">
-          <span className="mr-2 whitespace-nowrap md:mr-0">Similarity: {similarity.toFixed(2)}</span>
-          <span className="whitespace-nowrap">Distance: {distance.toFixed(2)}</span>
-        </div>
+        {idea && (
+          <div className="text-sm text-gray-500 text-right md:flex md:flex-col">
+            <span className="mr-2 whitespace-nowrap md:mr-0">Similarity: {idea.similarity.toFixed(2)}</span>
+            <span className="whitespace-nowrap">Distance: {idea.distance.toFixed(2)}</span>
+          </div>
+        )}
       </div>
     </li>
   );
 };
 
-const DragDrop: React.FC<DragDropProps> = ({ data, onUpdate }) => {
+const DragDrop: React.FC<DragDropProps> = ({ data, summaries, onUpdate }) => {
+  // Initial creation of items. Sort them by their cluster, so that we have #clusters blocks of ideas.
   const [items, setItems] = useState(
-    data.ideas.map((idea, index) => ({
-      id: `item-${index}`,
-      content: idea,
-      similarity: data.similarity[index],
-      distance: data.distance[index],
-      originalIndex: index,
+    data
+      .sort((a, b) => a.cluster - b.cluster)
+      .map((idea, index) => ({
+        id: `item-${index}`,
+        idea: idea,
+        originalIndex: index,
     }))
   );
 
@@ -78,34 +87,26 @@ const DragDrop: React.FC<DragDropProps> = ({ data, onUpdate }) => {
 
   const handleDragEnd = (event: any) => {
     const { active, over } = event;
-
+  
     if (active.id !== over.id) {
       const oldIndex = items.findIndex((item) => item.id === active.id);
       const newIndex = items.findIndex((item) => item.id === over.id);
 
       const newItems = arrayMove(items, oldIndex, newIndex);
       setItems(newItems);
-      const updatedIdeas = newItems.map(item => item.content);
+      const updatedIdeas = newItems.map(item => item.idea.idea);
       onUpdate(updatedIdeas);
     }
-
   };
+
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={items.map(item => item.id)} strategy={verticalListSortingStrategy}>
-        <ul className="space-y-2">
-          {items.map((item, index) => (
-            <SortableItem 
-              key={item.id} 
-              id={item.id} 
-              content={item.content} 
-              similarity={item.similarity} 
-              distance={item.distance} 
-              originalIndex={item.originalIndex}
-              currentIndex={index}
-            />
-          ))}
+        <ul className='space-y-2'>
+          {
+            createSortableListElement(items, summaries)
+          }
         </ul>
       </SortableContext>
     </DndContext>
@@ -113,3 +114,47 @@ const DragDrop: React.FC<DragDropProps> = ({ data, onUpdate }) => {
 };
 
 export default DragDrop;
+
+function createSortableListElement(
+  items: {
+    id: string;
+    idea: {
+      idea: string;
+      similarity: number;
+      distance: number;
+      cluster: number;
+    };
+    originalIndex: number;
+  }[],
+  summaries: string[]): React.ReactNode {
+  let currentCluster: number | null = null;
+  return items.map((item, index) => {
+    const elements = [];
+    if (item.idea.cluster !== currentCluster) {
+      currentCluster = item.idea.cluster;
+      elements.push(
+        <li
+          key={`summary-${currentCluster}`}
+          id={`item-summary-${index}`}>
+          {summaries[currentCluster] ? (
+            <strong>{summaries[currentCluster]}</strong>
+          ) : (
+            <div className="animate-pulse">
+              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/2 mt-2"></div>
+            </div>
+          )}
+        </li>
+      );
+    }
+    elements.push(
+      <SortableItem
+        key={`idea-${index}`}
+        id={`item-${index}`}
+        idea={item.idea}
+        originalIndex={index}
+        currentIndex={index} />
+    );
+    return elements;
+  });
+}

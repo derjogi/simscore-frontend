@@ -1,54 +1,105 @@
 "use client";
 import BubbleChart from "@/app/components/BubbleChart";
-import { IdeasAndSimScores, PlotData } from "@/app/constants";
+import {
+  EvaluatedIdea,
+  IdeasAndSimScores,
+  KmeansData,
+  PlotData,
+} from "@/app/constants";
 import { useState, useEffect, useRef } from "react";
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faCompress, faExpand } from '@fortawesome/free-solid-svg-icons'
-
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCompress, faExpand } from "@fortawesome/free-solid-svg-icons";
+import DragDrop from "@/app/components/DragDrop";
 
 export default function SessionPage({ params }: { params: { id: string } }) {
   const [ideasAndSimScores, setIdeasAndSimScores] =
     useState<IdeasAndSimScores>();
   const [plotData, setPlotData] = useState<PlotData>();
   const [isLoading, setIsLoading] = useState(true);
+  const [evaluatedIdeas, setEvaluatedIdeas] = useState<EvaluatedIdea[]>([]);
+  const [summaries, setSummaries] = useState<string[]>([]);
+  const [showSubmitButton, setShowSubmitButton] = useState(true);
+  const [name, setName] = useState("");
 
   useEffect(() => {
     setIsLoading(true);
     const storedData = localStorage.getItem(`sessionData_${params.id}`);
     if (storedData) {
-      const data = JSON.parse(storedData);
-      setIdeasAndSimScores(data.results);
-      setPlotData(data.plot_data);
-      setIsLoading(false);
+      setValues();
     } else {
       console.log("No data found for session ID:", params.id);
       // Fallback to fetching data if not found in localStorage
       fetchSessionData();
+      setValues();
     }
   }, [params.id]);
 
-  // useEffect(() => {
-  //   setIsLoading(true);
-  //   fetchSessionData();
-  // }, [params.id]);
+  const setValues = () => {
+    const storedData = localStorage.getItem(`sessionData_${params.id}`);
+    if (storedData) {
+      console.log("Data found in localStorage:", storedData);
+      const data = JSON.parse(storedData);
+      setIdeasAndSimScores(data.results);
+      setPlotData(data.plot_data);
+      const clusteredIdeas = createClusteredIdeas(
+        data.results,
+        data.plot_data.kmeans_data
+      );
+      setEvaluatedIdeas(clusteredIdeas);
+      fetchSummaries(clusteredIdeas);
+      setIsLoading(false);
+    } else {
+      console.log("no data in localStorage 😢");
+    }
+  };
 
   const fetchSessionData = async () => {
     const host = process.env.SIMSCORE_API;
     console.log("Fetching data for session ID:", params.id);
-    try { 
+    try {
       const response = await fetch(`${host}/session/${params.id}`);
       if (!response.ok) {
         console.log(`HTTP error! status: ${response.status}`);
         setIsLoading(false);
       }
       const data = await response.json();
-      console.log(`Data in session/${params.id} :`, data);
-      setIdeasAndSimScores(data.results);
-      setPlotData(data.plot_data);
+      localStorage.setItem(`sessionData_${params.id}`, JSON.stringify(data));
     } catch (error) {
       console.log("Error fetching data:", error);
     }
-    setIsLoading(false);
+  };
+
+  function createClusteredIdeas(
+    ideasAndScores: IdeasAndSimScores,
+    kmeansData: KmeansData
+  ): EvaluatedIdea[] {
+    return ideasAndScores.ideas.map((idea, index) => ({
+      idea,
+      similarity: ideasAndScores.similarity[index],
+      distance: ideasAndScores.distance[index],
+      cluster: kmeansData.cluster[index],
+    }));
+  }
+
+  const fetchSummaries = async (
+    clusteredIdeas: EvaluatedIdea[]
+  ): Promise<string[]> => {
+    console.log("Fetching summaries for clustered ideas:", clusteredIdeas);
+    const host = process.env.SIMSCORE_API;
+    const response = await fetch(`${host}/summarize_clusters`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(clusteredIdeas),
+    });
+    if (!response.ok) {
+      console.log(`HTTP error! status: ${response.status}`);
+    }
+    const summaries = await response.json();
+    console.log("Summaries:", summaries);
+    setSummaries(summaries);
+    return summaries;
   };
 
   const handleDragDropUpdate = (updatedOutput: string[]) => {
@@ -59,13 +110,39 @@ export default function SessionPage({ params }: { params: { id: string } }) {
     console.log("Updated ideas: ", updatedOutput);
   };
 
+  async function submitNewRanking(name: string) {
+    console.log("Submitting reranked data.");
+    const host = process.env.SIMSCORE_API;
+    try {
+      const response = await fetch(`${host}/session/${params.id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        redirect: "follow",
+        body: JSON.stringify({ name: name, ideasAndSimScores }),
+      });
+      if (response.ok) {
+        setShowSubmitButton(false);
+        console.log("Successfully submitted data.");
+      } else {
+        setShowSubmitButton(true);
+        console.log("Na uh, something went wrong: ", response.status);
+        throw new Error("Failed to submit data: ", await response.json());
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Failed to submit data.");
+    }
+  }
+
   const [openDetail, setOpenDetail] = useState<string | null>(null);
   const [showPopup, setShowPopup] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const chartRef = useRef<HTMLDivElement>(null);
 
-  const expand = <FontAwesomeIcon icon={faExpand} />
-  const collapse = <FontAwesomeIcon icon={faCompress} />
+  const expand = <FontAwesomeIcon icon={faExpand} />;
+  const collapse = <FontAwesomeIcon icon={faCompress} />;
 
   const updateDivHeight = () => {
     if (chartRef.current) {
@@ -87,6 +164,8 @@ export default function SessionPage({ params }: { params: { id: string } }) {
       setTimeout(() => setShowPopup(false), 2000); // Hide popup after 2 seconds
     });
   };
+
+  const [showReRankSection, setShowReRankSection] = useState(false);
 
   return (
     <div>
@@ -168,10 +247,7 @@ export default function SessionPage({ params }: { params: { id: string } }) {
                   setOpenDetail(openDetail === "table" ? null : "table")
                 }
               >
-                {openDetail === "table"
-                  ? collapse
-                  : expand
-                }
+                {openDetail === "table" ? collapse : expand}
               </button>
             </div>
             <div
@@ -187,9 +263,7 @@ export default function SessionPage({ params }: { params: { id: string } }) {
               {openDetail === "chart" && (
                 <button
                   className="absolute top-2 right-2 p-2 bg-gray-200 rounded-full"
-                  onClick={() =>
-                    setOpenDetail(null)
-                  }
+                  onClick={() => setOpenDetail(null)}
                 >
                   {collapse}
                 </button>
@@ -209,12 +283,57 @@ export default function SessionPage({ params }: { params: { id: string } }) {
               </button>
             </div>
           </div>
+
+          <div className="flex justify-center items-center">
+            <button
+              className="m-4 p-2 bg-blue-500 text-white rounded-md shadow-lg"
+              onClick={() => setShowReRankSection(!showReRankSection)}
+              >
+              {showReRankSection ? "Collapse" : "Expand Categorized View"}
+            </button>
+          </div>
+          {showReRankSection && evaluatedIdeas && (
+            <>
+              <h2>{"Re-Rank this feedback, and submit when you're done:"}</h2>
+              <div className="p-8">
+                <DragDrop
+                  data={evaluatedIdeas}
+                  summaries={summaries}
+                  onUpdate={handleDragDropUpdate}
+                />
+              </div>
+              {showSubmitButton ? (
+                <div className="p-8">
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Enter your name"
+                    className="border rounded px-2 py-1 mr-2"
+                  />
+
+                  <button
+                    className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50"
+                    onClick={() => {
+                      console.log("Pushed the button! Name: ", name);
+                      submitNewRanking(name);
+                    }}
+                    disabled={!name && !showSubmitButton}
+                  >
+                    Submit
+                  </button>
+                </div>
+              ) : (
+                <div>Already Submitted</div>
+              )}
+            </>
+          )}
         </>
       )}
       {!isLoading && !plotData && (
         <div className="flex justify-center items-center">
           {"Aww, sorry. We couldn't find any data for that session."}
-         </div>
+        </div>
       )}
     </div>
   );

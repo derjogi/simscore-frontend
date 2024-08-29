@@ -17,3 +17,11 @@ export interface KmeansData {
   centers: number[][];
   cluster: number[];
 }
+
+export interface EvaluatedIdea {
+  idea: string;
+  similarity: number;
+  distance: number;
+  cluster: number;
+}
+

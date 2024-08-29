@@ -58,10 +58,7 @@ export default function SessionPage({ params }: { params: { id: string } }) {
             {ideasAndSimScores && (
               <>
                 <div className="p-8">
-                  <DragDrop
-                    data={ideasAndSimScores}
-                    onUpdate={handleDragDropUpdate}
-                  />
+                  
                 </div>
                 {showSubmitButton ? (
                   <div className="p-8">
