@@ -9,7 +9,7 @@ import {
 import { useState, useEffect, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCompress, faExpand } from "@fortawesome/free-solid-svg-icons";
-import DragDrop from "@/app/components/DragDrop";
+import ClusterView from "@/app/components/ClusterView";
 
 export default function SessionPage({ params }: { params: { id: string } }) {
   const [ideasAndSimScores, setIdeasAndSimScores] =
@@ -41,10 +41,11 @@ export default function SessionPage({ params }: { params: { id: string } }) {
       const data = JSON.parse(storedData);
       setIdeasAndSimScores(data.results);
       setPlotData(data.plot_data);
-      const clusteredIdeas = createClusteredIdeas(
-        data.results,
-        data.plot_data.kmeans_data
-      );
+      // const clusteredIdeas = createClusteredIdeas(
+      //   data.results,
+      //   data.plot_data.kmeans_data
+      // );
+      const clusteredIdeas = data.evaluated_ideas;
       setEvaluatedIdeas(clusteredIdeas);
       fetchSummaries(clusteredIdeas);
       setIsLoading(false);
@@ -166,6 +167,7 @@ export default function SessionPage({ params }: { params: { id: string } }) {
   };
 
   const [showReRankSection, setShowReRankSection] = useState(false);
+  const [showStarRatingSection, setShowStarRatingSection] = useState(false);
 
   return (
     <div>
@@ -177,6 +179,28 @@ export default function SessionPage({ params }: { params: { id: string } }) {
 
       {plotData && !isLoading && (
         <>
+          
+          <div className="flex justify-center items-center">
+            <button
+              className="m-4 p-2 bg-blue-500 text-white rounded-md shadow-lg"
+              onClick={() => setShowStarRatingSection(!showStarRatingSection)}
+              >
+              {showStarRatingSection ? "Collapse" : "Expand Categorized Star Ranking View"}
+            </button>
+          </div>
+
+          {showStarRatingSection && evaluatedIdeas && (
+            <>
+              <h2>{"Rate these statements:"}</h2>
+              <div className="p-8">
+                <ClusterView
+                  data={evaluatedIdeas}
+                  clusterTitles={summaries}
+                />
+              </div>
+            </>
+          )}
+
           <div className="flex flex-wrap align-middle justify-center transition-all duration-300">
             <div
               ref={chartRef}
@@ -292,42 +316,6 @@ export default function SessionPage({ params }: { params: { id: string } }) {
               {showReRankSection ? "Collapse" : "Expand Categorized View"}
             </button>
           </div>
-          {showReRankSection && evaluatedIdeas && (
-            <>
-              <h2>{"Re-Rank this feedback, and submit when you're done:"}</h2>
-              <div className="p-8">
-                <DragDrop
-                  data={evaluatedIdeas}
-                  summaries={summaries}
-                  onUpdate={handleDragDropUpdate}
-                />
-              </div>
-              {showSubmitButton ? (
-                <div className="p-8">
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Enter your name"
-                    className="border rounded px-2 py-1 mr-2"
-                  />
-
-                  <button
-                    className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50"
-                    onClick={() => {
-                      console.log("Pushed the button! Name: ", name);
-                      submitNewRanking(name);
-                    }}
-                    disabled={!name && !showSubmitButton}
-                  >
-                    Submit
-                  </button>
-                </div>
-              ) : (
-                <div>Already Submitted</div>
-              )}
-            </>
-          )}
         </>
       )}
       {!isLoading && !plotData && (

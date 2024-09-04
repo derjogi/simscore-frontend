@@ -1,7 +1,6 @@
 "use client";
 import BubbleChart from "@/app/components/BubbleChart";
 import ClusterChart from "@/app/components/ClusterChart";
-import DragDrop from "@/app/components/DragDrop";
 import { IdeasAndSimScores, PlotData } from "@/app/constants";
 import Link from "next/link";
 import { useState, useEffect } from "react";

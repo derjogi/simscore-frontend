@@ -3,6 +3,12 @@ export interface IdeasAndSimScores {
   similarity: number[];
   distance: number[];
 }
+
+export interface ItemWithId {
+  id: number | string;
+}
+
+export type EvaluatedIdeaWithId = EvaluatedIdea & ItemWithId
   
 export interface PlotData {
   scatter_points: [[number, number]];
