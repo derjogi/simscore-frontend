@@ -5,6 +5,7 @@ import {
   IdeasAndSimScores,
   KmeansData,
   PlotData,
+  Ratings,
 } from "@/app/constants";
 import { useState, useEffect, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -41,13 +42,13 @@ export default function SessionPage({ params }: { params: { id: string } }) {
       const data = JSON.parse(storedData);
       setIdeasAndSimScores(data.results);
       setPlotData(data.plot_data);
-      // const clusteredIdeas = createClusteredIdeas(
-      //   data.results,
-      //   data.plot_data.kmeans_data
-      // );
-      const clusteredIdeas = data.evaluated_ideas;
-      setEvaluatedIdeas(clusteredIdeas);
-      fetchSummaries(clusteredIdeas);
+      const evaluatedIdeas = createEvaluatedIdeas(
+        data.results,
+        data.plot_data.kmeans_data,
+        data.ratings
+      );
+      setEvaluatedIdeas(evaluatedIdeas);
+      setSummaries(data.summaries);
       setIsLoading(false);
     } else {
       console.log("no data in localStorage 😢");
@@ -70,47 +71,20 @@ export default function SessionPage({ params }: { params: { id: string } }) {
     }
   };
 
-  function createClusteredIdeas(
+  function createEvaluatedIdeas(
     ideasAndScores: IdeasAndSimScores,
-    kmeansData: KmeansData
+    kmeansData: KmeansData,
+    ratings: Ratings[]
   ): EvaluatedIdea[] {
     return ideasAndScores.ideas.map((idea, index) => ({
       idea,
       similarity: ideasAndScores.similarity[index],
       distance: ideasAndScores.distance[index],
       cluster: kmeansData.cluster[index],
+      ratings: ratings && ratings[index] ? ratings[index] : { userRatings: [] },
     }));
   }
-
-  const fetchSummaries = async (
-    clusteredIdeas: EvaluatedIdea[]
-  ): Promise<string[]> => {
-    console.log("Fetching summaries for clustered ideas:", clusteredIdeas);
-    const host = process.env.SIMSCORE_API;
-    const response = await fetch(`${host}/summarize_clusters`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(clusteredIdeas),
-    });
-    if (!response.ok) {
-      console.log(`HTTP error! status: ${response.status}`);
-    }
-    const summaries = await response.json();
-    console.log("Summaries:", summaries);
-    setSummaries(summaries);
-    return summaries;
-  };
-
-  const handleDragDropUpdate = (updatedOutput: string[]) => {
-    setIdeasAndSimScores((prevState) => ({
-      ...(prevState ?? { similarity: [], distance: [] }),
-      ideas: updatedOutput,
-    }));
-    console.log("Updated ideas: ", updatedOutput);
-  };
-
+  
   async function submitNewRanking(name: string) {
     console.log("Submitting reranked data.");
     const host = process.env.SIMSCORE_API;
@@ -196,6 +170,7 @@ export default function SessionPage({ params }: { params: { id: string } }) {
                 <ClusterView
                   data={evaluatedIdeas}
                   clusterTitles={summaries}
+                  sessionId={params.id}
                 />
               </div>
             </>

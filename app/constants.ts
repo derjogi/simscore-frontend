@@ -1,3 +1,5 @@
+import { User } from "next-auth";
+
 export interface IdeasAndSimScores {
   ideas: string[];
   similarity: number[];
@@ -5,7 +7,7 @@ export interface IdeasAndSimScores {
 }
 
 export interface ItemWithId {
-  id: number | string;
+  id: number;
 }
 
 export type EvaluatedIdeaWithId = EvaluatedIdea & ItemWithId
@@ -24,10 +26,18 @@ export interface KmeansData {
   cluster: number[];
 }
 
+export interface Ratings {
+  userRatings: {
+    userId: string;
+    rating: number;
+  }[];
+}
+
 export interface EvaluatedIdea {
   idea: string;
   similarity: number;
   distance: number;
   cluster: number;
+  ratings: Ratings;
 }
 
