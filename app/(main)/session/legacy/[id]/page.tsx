@@ -1,7 +1,6 @@
 "use client";
 import BubbleChart from "@/app/components/BubbleChart";
 import ClusterChart from "@/app/components/ClusterChart";
-import DragDrop from "@/app/components/DragDrop";
 import { IdeasAndSimScores, PlotData } from "@/app/constants";
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -58,10 +57,7 @@ export default function SessionPage({ params }: { params: { id: string } }) {
             {ideasAndSimScores && (
               <>
                 <div className="p-8">
-                  <DragDrop
-                    data={ideasAndSimScores}
-                    onUpdate={handleDragDropUpdate}
-                  />
+                  
                 </div>
                 {showSubmitButton ? (
                   <div className="p-8">
