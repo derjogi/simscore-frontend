@@ -136,6 +136,9 @@ export default function SessionPage({ params }: { params: { id: string } }) {
     if (chartRef.current) {
       const width = chartRef.current.offsetWidth;
       chartRef.current.style.height = `${1.2 * width}px`;
+      if ( ideasAndSimScores?.ideas.length && ideasAndSimScores.ideas.length > 200) {
+          chartRef.current.style.visibility = 'hidden';
+      }
     }
   };
 
