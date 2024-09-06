@@ -136,9 +136,6 @@ export default function SessionPage({ params }: { params: { id: string } }) {
     if (chartRef.current) {
       const width = chartRef.current.offsetWidth;
       chartRef.current.style.height = `${1.2 * width}px`;
-      if ( ideasAndSimScores?.ideas.length && ideasAndSimScores.ideas.length > 200) {
-          chartRef.current.style.visibility = 'hidden';
-      }
     }
   };
 
@@ -265,38 +262,39 @@ export default function SessionPage({ params }: { params: { id: string } }) {
                 {openDetail === "table" ? collapse : expand}
               </button>
             </div>
-            <div
-              ref={chartRef}
-              className={`relative p-4 m-2 bg-white shadow-md rounded-lg transition-all duration-300 ${
-                openDetail === "chart"
-                  ? "w-4/5"
-                  : openDetail === "table"
-                  ? "w-1/6 h-56"
-                  : "h-[500px] w-[450px]"
-              }`}
-            >
-              {openDetail === "chart" && (
-                <button
-                  className="absolute top-2 right-2 p-2 bg-gray-200 rounded-full"
-                  onClick={() => setOpenDetail(null)}
-                >
-                  {collapse}
-                </button>
-              )}
-              <div className="w-full flex items-center justify-center">
-                <div className="p-4 w-full h-full">
-                  <BubbleChart plotData={plotData} />
-                </div>
-              </div>
-              <button
-                className="absolute bottom-2 right-2 p-2 bg-gray-200 rounded-full"
-                onClick={() =>
-                  setOpenDetail(openDetail === "chart" ? null : "chart")
-                }
+            {ideasAndSimScores && ideasAndSimScores.ideas.length < 200 && (
+              <div
+                ref={chartRef}
+                className={`relative p-4 m-2 bg-white shadow-md rounded-lg transition-all duration-300 ${openDetail === "chart"
+                    ? "w-4/5"
+                    : openDetail === "table"
+                      ? "w-1/6 h-56"
+                      : "h-[500px] w-[450px]"
+                  }`}
               >
-                {openDetail === "chart" ? collapse : expand}
-              </button>
-            </div>
+                {openDetail === "chart" && (
+                  <button
+                    className="absolute top-2 right-2 p-2 bg-gray-200 rounded-full"
+                    onClick={() => setOpenDetail(null)}
+                  >
+                    {collapse}
+                  </button>
+                )}
+                <div className="w-full flex items-center justify-center">
+                  <div className="p-4 w-full h-full">
+                    <BubbleChart plotData={plotData} />
+                  </div>
+                </div>
+                <button
+                  className="absolute bottom-2 right-2 p-2 bg-gray-200 rounded-full"
+                  onClick={() =>
+                    setOpenDetail(openDetail === "chart" ? null : "chart")
+                  }
+                >
+                  {openDetail === "chart" ? collapse : expand}
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="flex justify-center items-center">
