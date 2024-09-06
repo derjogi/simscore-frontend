@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { PlotData, IdeasAndSimScores } from "@/constants";
 import Textarea from "react-dropzone-textarea";
+import LZString from 'lz-string';
 
 export default function Create() {
   const [input, setInput] = useState("");
@@ -41,7 +42,8 @@ export default function Create() {
         console.log("Data: ", data);
         setIsLoading(false);
         setId(data.id);
-        localStorage.setItem(`sessionData_${data.id}`, JSON.stringify(data));
+        const compressedData = LZString.compress(JSON.stringify(data));
+        localStorage.setItem(`sessionData_${data.id}`, compressedData);
         router.push(`/session/${data.id}`);
       });
   };

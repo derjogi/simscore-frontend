@@ -11,6 +11,8 @@ import { useState, useEffect, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCompress, faExpand } from "@fortawesome/free-solid-svg-icons";
 import ClusterView from "@/app/components/ClusterView";
+import LZString from 'lz-string';
+
 
 export default function SessionPage({ params }: { params: { id: string } }) {
   const [ideasAndSimScores, setIdeasAndSimScores] =
@@ -26,20 +28,17 @@ export default function SessionPage({ params }: { params: { id: string } }) {
     setIsLoading(true);
     const storedData = localStorage.getItem(`sessionData_${params.id}`);
     if (storedData) {
-      setValues();
+      setValues(storedData);
     } else {
-      console.log("No data found for session ID:", params.id);
-      // Fallback to fetching data if not found in localStorage
       fetchSessionData();
-      setValues();
     }
   }, [params.id]);
 
-  const setValues = () => {
-    const storedData = localStorage.getItem(`sessionData_${params.id}`);
-    if (storedData) {
-      console.log("Data found in localStorage:", storedData);
-      const data = JSON.parse(storedData);
+  const setValues = (compressedData: string) => {
+    if (compressedData) {
+      const decompressedData = LZString.decompress(compressedData);
+      const data = JSON.parse(decompressedData);
+      console.log("Data found in localStorage:", data);
       setIdeasAndSimScores(data.results);
       setPlotData(data.plot_data);
       const evaluatedIdeas = createEvaluatedIdeas(
@@ -65,7 +64,21 @@ export default function SessionPage({ params }: { params: { id: string } }) {
         setIsLoading(false);
       }
       const data = await response.json();
-      localStorage.setItem(`sessionData_${params.id}`, JSON.stringify(data));
+      const compressedData = LZString.compress(JSON.stringify(data));
+      try {
+        localStorage.setItem(`sessionData_${params.id}`, compressedData);
+      } catch (error) {
+        // Probably too much data stored. Let's delete previous ones.
+        console.log("Removing cached session data due to error: ", error);
+        localStorage.keys().forEach((key: string) => {
+          if (key.startsWith("sessionData_")) {
+            localStorage.removeItem(key);
+          }
+        });
+        // And now try again.
+        localStorage.setItem(`sessionData_${params.id}`, compressedData);
+      }
+      setValues(compressedData);
     } catch (error) {
       console.log("Error fetching data:", error);
     }
