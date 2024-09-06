@@ -297,14 +297,11 @@ export default function SessionPage({ params }: { params: { id: string } }) {
             )}
           </div>
 
-          <div className="flex justify-center items-center">
-            <button
-              className="m-4 p-2 bg-blue-500 text-white rounded-md shadow-lg"
-              onClick={() => setShowReRankSection(!showReRankSection)}
-              >
-              {showReRankSection ? "Collapse" : "Expand Categorized View"}
-            </button>
-          </div>
+          {ideasAndSimScores && ideasAndSimScores.ideas.length >= 200 && (
+            <div className="flex justify-center items-center">
+              {"Cannot display SimScore chart for more than 200 statements."}
+            </div>
+          )}
         </>
       )}
       {!isLoading && !plotData && (
