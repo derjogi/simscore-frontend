@@ -153,6 +153,34 @@ export default function SessionPage({ params }: { params: { id: string } }) {
     });
   };
 
+  const exportToCSV = () => {
+    if (!evaluatedIdeas) return;
+
+    const csvContent = [
+      ["Idea", "Similarity Score", "Cluster", "Category"],
+      ...evaluatedIdeas.map((idea, index) => [
+        idea.idea,
+        idea.similarity,
+        idea.cluster,
+        summaries[index]
+      ])
+    ]
+      .map(row => row.join("|"))
+      .join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", "evaluated_ideas.csv");
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }    
+  }
+
   const [showReRankSection, setShowReRankSection] = useState(false);
   const [showStarRatingSection, setShowStarRatingSection] = useState(false);
 
@@ -174,11 +202,16 @@ export default function SessionPage({ params }: { params: { id: string } }) {
               >
               {showStarRatingSection ? "Collapse" : "Expand Categorized Star Ranking View"}
             </button>
+            <button
+              className="m-4 p-2 bg-slate-500 rounded-md shadow-lg"
+              onClick={exportToCSV}
+              >
+            {"Export to CSV"}
+            </button>
           </div>
 
           {showStarRatingSection && evaluatedIdeas && (
             <>
-              <h2>{"Rate these statements:"}</h2>
               <div className="p-8">
                 <ClusterView
                   data={evaluatedIdeas}
