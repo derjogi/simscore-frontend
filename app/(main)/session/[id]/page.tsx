@@ -12,6 +12,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCompress, faExpand } from "@fortawesome/free-solid-svg-icons";
 import ClusterView from "@/app/components/ClusterView";
 import LZString from 'lz-string';
+import { useSearchParams } from "next/navigation";
 
 
 export default function SessionPage({ params }: { params: { id: string } }) {
@@ -23,6 +24,9 @@ export default function SessionPage({ params }: { params: { id: string } }) {
   const [summaries, setSummaries] = useState<string[]>([]);
   const [showSubmitButton, setShowSubmitButton] = useState(true);
   const [name, setName] = useState("");
+
+  const searchParams = useSearchParams();
+  const version = searchParams.get('version') ?? "v1";
 
   useEffect(() => {
     setIsLoading(true);
@@ -194,23 +198,24 @@ export default function SessionPage({ params }: { params: { id: string } }) {
 
       {plotData && !isLoading && (
         <>
-          
           <div className="flex justify-center items-center">
             <button
-              className="m-4 p-2 bg-blue-500 text-white rounded-md shadow-lg"
-              onClick={() => setShowStarRatingSection(!showStarRatingSection)}
+                className="m-4 p-2 bg-slate-500 rounded-md shadow-lg"
+                onClick={exportToCSV}
               >
-              {showStarRatingSection ? "Collapse" : "Expand Categorized Star Ranking View"}
+              {"Export to CSV"}
             </button>
-            <button
-              className="m-4 p-2 bg-slate-500 rounded-md shadow-lg"
-              onClick={exportToCSV}
-              >
-            {"Export to CSV"}
-            </button>
+            {version === "v2" && (
+              <button
+                className="m-4 p-2 bg-blue-500 text-white rounded-md shadow-lg"
+                onClick={() => setShowStarRatingSection(!showStarRatingSection)}
+                >
+                {showStarRatingSection ? "Collapse" : "Expand Categorized Star Ranking View"}
+              </button>
+            )}
           </div>
 
-          {showStarRatingSection && evaluatedIdeas && (
+          {version === "v2" && showStarRatingSection && evaluatedIdeas && (
             <>
               <div className="p-8">
                 <ClusterView
@@ -222,90 +227,19 @@ export default function SessionPage({ params }: { params: { id: string } }) {
             </>
           )}
 
-          <div className="flex flex-wrap align-middle justify-center transition-all duration-300">
-            <div
-              ref={chartRef}
-              className={`relative p-4 m-2 bg-white shadow-md rounded-lg transition-all duration-300 ${
-                openDetail === "table"
-                  ? "w-4/5 h-dvh"
-                  : openDetail === "chart"
-                  ? "w-1/6 h-56"
-                  : "w-2/5 h-[500px]"
-              }`}
-            >
-              {openDetail === "table" && (
-                <button
-                  className="absolute top-2 right-2 p-2 bg-gray-200 rounded-full"
-                  onClick={() => setOpenDetail(null)}
-                >
-                  {collapse}
-                </button>
-              )}
-              <div className="flex overflow-scroll h-full">
-                <div className="p-4">
-                  <table>
-                    <caption>Similarity Details</caption>
-                    <thead>
-                      <tr key="header" className="px-4">
-                        <td className="px-4">#</td>
-                        <td className="px-4">Idea</td>
-                        <td className="px-4">Similarity</td>
-                        <td className="px-4">Distance</td>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {ideasAndSimScores?.ideas.map((idea, i) => (
-                        <tr
-                          key={i}
-                          className="px-4 hover:bg-slate-100 cursor-copy"
-                          onClick={(e) => handleRowClick(idea, e)}
-                        >
-                          <td className="px-4">{i + 1}</td>
-                          <td className="px-4">{idea}</td>
-                          <td className="px-4">
-                            {ideasAndSimScores.similarity[i].toFixed(2)}
-                          </td>
-                          <td className="px-4">
-                            {ideasAndSimScores.distance[i].toFixed(2)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {showPopup && (
-                    <div
-                      className="fixed bg-green-500 text-white px-2 py-1 rounded shadow text-sm"
-                      style={{
-                        left: `${mousePosition.x + 15}px`,
-                        top: `${mousePosition.y + 12}px`,
-                      }}
-                    >
-                      Copied to clipboard!
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <button
-                className="absolute bottom-2 right-2 p-2 bg-gray-200 rounded-full"
-                onClick={() =>
-                  setOpenDetail(openDetail === "table" ? null : "table")
-                }
-              >
-                {openDetail === "table" ? collapse : expand}
-              </button>
-            </div>
-            {ideasAndSimScores && ideasAndSimScores.ideas.length < 200 && (
+          {version === "v1" && (
+            <div className="flex flex-wrap align-middle justify-center transition-all duration-300">
               <div
                 ref={chartRef}
-                className={`relative p-4 m-2 bg-white shadow-md rounded-lg transition-all duration-300 ${openDetail === "chart"
-                    ? "w-4/5"
-                    : openDetail === "table"
-                      ? "w-1/6 h-56"
-                      : "h-[500px] w-[450px]"
-                  }`}
+                className={`relative p-4 m-2 bg-white shadow-md rounded-lg transition-all duration-300 ${
+                  openDetail === "table"
+                    ? "w-4/5 h-dvh"
+                    : openDetail === "chart"
+                    ? "w-1/6 h-56"
+                    : "w-2/5 h-[500px]"
+                }`}
               >
-                {openDetail === "chart" && (
+                {openDetail === "table" && (
                   <button
                     className="absolute top-2 right-2 p-2 bg-gray-200 rounded-full"
                     onClick={() => setOpenDetail(null)}
@@ -313,22 +247,102 @@ export default function SessionPage({ params }: { params: { id: string } }) {
                     {collapse}
                   </button>
                 )}
-                <div className="w-full flex items-center justify-center">
-                  <div className="p-4 w-full h-full">
-                    <BubbleChart plotData={plotData} />
+                <div className="flex overflow-scroll h-full">
+                  <div className="p-4">
+                    <table>
+                      <caption>Similarity Details</caption>
+                      <thead>
+                        <tr key="header" className="px-4">
+                          <td className="px-4">#</td>
+                          <td className="px-4">Idea</td>
+                          <td className="px-4">Similarity</td>
+                          <td className="px-4">Distance</td>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {ideasAndSimScores?.ideas.map((idea, i) => (
+                          <tr
+                            key={i}
+                            className="px-4 hover:bg-slate-100 cursor-copy"
+                            onClick={(e) => handleRowClick(idea, e)}
+                          >
+                            <td className="px-4">{i + 1}</td>
+                            <td className="px-4">{idea}</td>
+                            <td className="px-4">
+                              {ideasAndSimScores.similarity[i].toFixed(2)}
+                            </td>
+                            <td className="px-4">
+                              {ideasAndSimScores.distance[i].toFixed(2)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {showPopup && (
+                      <div
+                        className="fixed bg-green-500 text-white px-2 py-1 rounded shadow text-sm"
+                        style={{
+                          left: `${mousePosition.x + 15}px`,
+                          top: `${mousePosition.y + 12}px`,
+                        }}
+                      >
+                        Copied to clipboard!
+                      </div>
+                    )}
                   </div>
                 </div>
+
                 <button
                   className="absolute bottom-2 right-2 p-2 bg-gray-200 rounded-full"
                   onClick={() =>
-                    setOpenDetail(openDetail === "chart" ? null : "chart")
+                    setOpenDetail(openDetail === "table" ? null : "table")
                   }
                 >
-                  {openDetail === "chart" ? collapse : expand}
+                  {openDetail === "table" ? collapse : expand}
                 </button>
               </div>
-            )}
-          </div>
+              {ideasAndSimScores && ideasAndSimScores.ideas.length < 200 && (
+                <div
+                  ref={chartRef}
+                  className={`relative p-4 m-2 bg-white shadow-md rounded-lg transition-all duration-300 ${openDetail === "chart"
+                      ? "w-4/5"
+                      : openDetail === "table"
+                        ? "w-1/6 h-56"
+                        : "h-[500px] w-[450px]"
+                    }`}
+                >
+                  {openDetail === "chart" && (
+                    <button
+                      className="absolute top-2 right-2 p-2 bg-gray-200 rounded-full"
+                      onClick={() => setOpenDetail(null)}
+                    >
+                      {collapse}
+                    </button>
+                  )}
+                  <div className="w-full flex items-center justify-center">
+                    <div className="p-4 w-full h-full">
+                      <BubbleChart plotData={plotData} />
+                    </div>
+                  </div>
+                  <button
+                    className="absolute bottom-2 right-2 p-2 bg-gray-200 rounded-full"
+                    onClick={() =>
+                      setOpenDetail(openDetail === "chart" ? null : "chart")
+                    }
+                  >
+                    {openDetail === "chart" ? collapse : expand}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+          {version === "v2" && (
+            <div className="w-full flex items-center justify-center">
+              <div className="p-4 w-full h-full">
+                <BubbleChart plotData={plotData} />
+              </div>
+            </div>
+          )}
 
           {ideasAndSimScores && ideasAndSimScores.ideas.length >= 200 && (
             <div className="flex justify-center items-center">
