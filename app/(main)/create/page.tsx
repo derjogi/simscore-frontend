@@ -20,16 +20,16 @@ export default function Create() {
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     setIsLoading(true);
-    const host = process.env.SIMSCORE_API;
-    const processAPI = host + "/process";
-
     let ideas = input.split("\n").filter((idea) => idea.trim() !== "");
 
     const payload = {
       ideas: ideas,
       store_results: storeResults,
     };
-
+    
+    // This is being processed with python, which goes to a separate server:
+    const processAPI = "/fastapi/process";
+  
     fetch(processAPI, {
       method: "POST",
       headers: {

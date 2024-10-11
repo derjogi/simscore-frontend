@@ -59,15 +59,15 @@ export default function SessionPage({ params }: { params: { id: string } }) {
   };
 
   const fetchSessionData = async () => {
-    const host = process.env.SIMSCORE_API;
     console.log("Fetching data for session ID:", params.id);
     try {
-      const response = await fetch(`${host}/session/${params.id}`);
+      const response = await fetch(`/api/session/${params.id}`);
       if (!response.ok) {
         console.log(`HTTP error! status: ${response.status}`);
         setIsLoading(false);
       }
       const data = await response.json();
+      console.log("Fetched data:", data);
       const compressedData = LZString.compress(JSON.stringify(data));
       try {
         localStorage.setItem(`sessionData_${params.id}`, compressedData);
