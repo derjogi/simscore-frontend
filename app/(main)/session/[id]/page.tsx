@@ -24,6 +24,7 @@ export default function SessionPage({ params }: { params: { id: string } }) {
   const [summaries, setSummaries] = useState<string[]>([]);
   const [showSubmitButton, setShowSubmitButton] = useState(true);
   const [name, setName] = useState("");
+  const [ids, setIds] = useState<string[]>([]);
 
   const searchParams = useSearchParams();
   const version = searchParams.get('version') ?? "v1";
@@ -50,6 +51,10 @@ export default function SessionPage({ params }: { params: { id: string } }) {
         data.plot_data.kmeans_data,
         data.ratings
       );
+      if (data.results.ids) {
+        setIds(data.results.ids);
+      }
+
       setEvaluatedIdeas(evaluatedIdeas);
       setSummaries(data.summaries);
       setIsLoading(false);
@@ -159,15 +164,23 @@ export default function SessionPage({ params }: { params: { id: string } }) {
 
   const exportToCSV = () => {
     if (!evaluatedIdeas) return;
-
+    
+    const headers = ["Idea", "Similarity Score", "Cluster", "Category"];
+    if (ids.length > 0) {
+      headers.unshift("ID");
+    }
+    console.log("Ids: ", ids);
+    console.log("Headers: ", headers);
     const csvContent = [
-      ["Idea", "Similarity Score", "Cluster", "Category"],
+      headers,
       ...evaluatedIdeas.map((idea, index) => [
-        idea.idea,
+        ids.length > 0 ? ids[index] : null,
+        `"${idea.idea.replace(/"/g, '""')}"`,
         idea.similarity,
         idea.cluster,
         summaries[index]
-      ])
+      ]
+        .filter(Boolean)) // Removes nulls
     ]
       .map(row => row.join("|"))
       .join("\n");

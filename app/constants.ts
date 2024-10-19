@@ -34,6 +34,7 @@ export interface Ratings {
 }
 
 export interface EvaluatedIdea {
+  id?: string
   idea: string;
   similarity: number;
   distance: number;

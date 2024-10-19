@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { PlotData, IdeasAndSimScores } from "@/constants";
 import Textarea from "react-dropzone-textarea";
+import * as XLSX from "xlsx";
+import { data } from "autoprefixer";
 import LZString from "lz-string";
 import { useSearchParams } from 'next/navigation';
 
@@ -17,10 +20,24 @@ export default function Create() {
 
   const router = useRouter();
 
-  const handleSubmit = async (e: any) => {
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewData, setPreviewData] = useState<string[][]>([]);
+  const [fullData, setFullData] = useState<string[][]>([]);
+
+  const [idColumn, setIdColumn] = useState<number | null>(null);
+  const [dataColumn, setDataColumn] = useState<number | null>(null);
+
+  const handleSubmitForm = async (e: any) => {
     e.preventDefault();
+    const ideas = input.split("\n").filter((idea) => idea.trim() !== "");
+    handleSubmit(ideas);
+  }
+
+  const handleSubmitXLS = async (processedData: string[][]) => {
+    handleSubmit(processedData);
+  }
+  const handleSubmit = async (ideas: string[][] | string[]) => {        
     setIsLoading(true);
-    let ideas = input.split("\n").filter((idea) => idea.trim() !== "");
 
     const payload = {
       ideas: ideas,
@@ -47,6 +64,133 @@ export default function Create() {
         localStorage.setItem(`sessionData_${data.id}`, compressedData);
         router.push(`/session/${data.id}`);
       });
+  };
+
+  const customTextConverter = (binary: any) => {
+    console.log(`Converting ${binary.byteLength} bytes`);
+    return new Promise((resolve, reject) => {
+      try {
+        //
+        // Read and parse workbook using XLSX, first worksheet only
+        //
+        // https://github.com/sheetjs/
+        // https://github.com/sheetjs/sheetjs#utility-functions
+        //
+        const workbook = XLSX.read(binary, { type: "array" });
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+
+        // const csv = XLSX.utils.sheet_to_csv(worksheet);
+        // resolve(csv);
+
+        const json = XLSX.utils.sheet_to_json<string[]>(worksheet, {
+          header: 1,
+          blankrows: false,
+        });
+        // This will be an array of arrays, with the headers in the first array.
+        // Ask the user which of those headers (if any) they want to use as 'id', and which as the 'data'.
+        const preview: string[][] = json.slice(0, 4);
+        setPreviewData(preview); // Get first 4 rows (including header)
+        setShowPreview(true);
+        setFullData(json);
+
+        resolve(json);
+        console.log("parsed XLSX");
+      } catch (error) {
+        // Display error in textarea and console
+        console.error(error);
+        resolve(error);
+      }
+    });
+  };
+
+  const truncateText = (text: string, maxLength: number = 30) => {
+    return text.length > maxLength ? text.slice(0, maxLength) + "..." : text;
+  };
+
+  interface PreviewPopupProps {
+    data: string[][];
+    onClose: () => void;
+    onConfirm: () => void;
+  }
+
+  const PreviewPopup: React.FC<PreviewPopupProps> = ({
+    data,
+    onClose,
+    onConfirm,
+  }) => {
+    const headerValues = data[0];
+    const dataValues = data.slice(1);
+    return (
+      <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center">
+        <div className="bg-white p-5 rounded-lg">
+          <h2 className="text-xl mb-4">Select ID and Data Columns</h2>
+          <table className="mb-4">
+            <thead>
+              <tr>
+                {data[0].map((header: string, index: number) => (
+                  <th key={index} className="px-4 py-2">
+                    {truncateText(header)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {dataValues.map((row: string[], rowIndex: number) => (
+                <tr key={rowIndex}>
+                  {row.map((cell: string, cellIndex: number) => (
+                    <td key={cellIndex} className="border px-4 py-2">
+                      {truncateText(cell)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="flex justify-evenly">
+            <select
+              value={idColumn !== null ? idColumn.toString() : "Select a value"}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                setIdColumn(Number(e.target.value))
+              }
+            >
+              <option value="">Select ID Column</option>
+              {headerValues.map((header: string, index: number) => (
+                <option key={index} value={index}>
+                  {header}
+                </option>
+              ))}
+            </select>
+            <select
+              value={dataColumn !== null ? dataColumn.toString() : "Select a alue"}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                setDataColumn(Number(e.target.value))
+              }
+            >
+              <option value="">Select Data Column</option>
+              {headerValues.map((header: string, index: number) => (
+                <option key={index} value={index}>
+                  {header}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={onClose}
+              className="mr-2 px-4 py-2 bg-gray-300 rounded"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              className="px-4 py-2 bg-blue-500 text-white rounded"
+            >
+              Confirm
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   type IdeaValidity = {
@@ -181,6 +325,25 @@ export default function Create() {
 
   return (
     <>
+      {showPreview && (
+        <PreviewPopup
+          data={previewData}
+          onClose={() => setShowPreview(false)}
+          onConfirm={() => {
+            console.log(`Confirmed preview. id: ${idColumn}; data: ${dataColumn}`)
+            if (idColumn !== null && dataColumn !== null) {
+              const processedData = fullData
+                .slice(1)
+                .map((row) => [row[idColumn], row[dataColumn]])
+                .filter(([id, data]) => id !== undefined && data !== undefined);
+              setShowPreview(false);
+              console.log(`Processed data: `, processedData)
+              handleSubmitXLS(processedData)
+            }
+          }}
+        />
+      )}
+
       <div className="space-y-4">
         {/* This is an advanced input field, by default */}
         {showIdeaInput && ideas.map((idea, index) => (
@@ -221,7 +384,7 @@ export default function Create() {
           </>
         ))}
 
-        <form className="space-y-2" onSubmit={handleSubmit}>
+        <form className="space-y-2" onSubmit={handleSubmitForm}>
           <label
             htmlFor={"answer"}
             className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
@@ -234,6 +397,7 @@ export default function Create() {
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               setInput(e.target.value)
             }
+            customTextConverter={customTextConverter}
             onDropRead={(text: string) => setInput(text)}
             textareaProps={{
               cols: 80,
@@ -258,15 +422,15 @@ export default function Create() {
             </label>
           </div>
 
-          <button
-            type="submit"
-            onClick={handleSubmit}
-            className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
-          >
-            Process
-          </button>
-        </form>
-      </div>
+            <button
+              type="submit"
+              onClick={handleSubmitForm}
+              className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+            >
+              Process
+            </button>
+          </form>
+        </div>
 
       {isLoading && (
         <div className="flex justify-center items-center">
