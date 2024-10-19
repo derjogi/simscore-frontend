@@ -11,9 +11,9 @@ import { useState, useEffect, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCompress, faExpand } from "@fortawesome/free-solid-svg-icons";
 import ClusterView from "@/app/components/ClusterView";
-import LZString from 'lz-string';
+import LZString from "lz-string";
 import { useSearchParams } from "next/navigation";
-
+import * as XLSX from "xlsx";
 
 export default function SessionPage({ params }: { params: { id: string } }) {
   const [ideasAndSimScores, setIdeasAndSimScores] =
@@ -27,7 +27,7 @@ export default function SessionPage({ params }: { params: { id: string } }) {
   const [ids, setIds] = useState<string[]>([]);
 
   const searchParams = useSearchParams();
-  const version = searchParams.get('version') ?? "v1";
+  const version = searchParams.get("version") ?? "v1";
 
   useEffect(() => {
     setIsLoading(true);
@@ -106,7 +106,7 @@ export default function SessionPage({ params }: { params: { id: string } }) {
       ratings: ratings && ratings[index] ? ratings[index] : { userRatings: [] },
     }));
   }
-  
+
   async function submitNewRanking(name: string) {
     console.log("Submitting reranked data.");
     const host = process.env.SIMSCORE_API;
@@ -162,41 +162,49 @@ export default function SessionPage({ params }: { params: { id: string } }) {
     });
   };
 
-  const exportToCSV = () => {
+  const exportToFile = (type: "csv" | "xlsx") => {
     if (!evaluatedIdeas) return;
-    
+
     const headers = ["Idea", "Similarity Score", "Cluster", "Category"];
     if (ids.length > 0) {
       headers.unshift("ID");
     }
     console.log("Ids: ", ids);
     console.log("Headers: ", headers);
-    const csvContent = [
+    const data = [
       headers,
-      ...evaluatedIdeas.map((idea, index) => [
-        ids.length > 0 ? ids[index] : null,
-        `"${idea.idea.replace(/"/g, '""')}"`,
-        idea.similarity,
-        idea.cluster,
-        summaries[index]
-      ]
-        .filter(Boolean)) // Removes nulls
-    ]
-      .map(row => row.join("|"))
-      .join("\n");
+      ...evaluatedIdeas.map((idea, index) =>
+        [
+          ids.length > 0 ? ids[index] : null,
+          `"${idea.idea.replace(/"/g, '""')}"`, // replace single quotes with double quotes, it's CSV standard
+          idea.similarity,
+          idea.cluster+1, // If this was 0-based the boolean filter below would remove it, so we need to increase by 1. Better anyway.
+          summaries[idea.cluster],
+        ].filter(Boolean) // Removes nulls
+      ), 
+    ];
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    if (link.download !== undefined) {
-      const url = URL.createObjectURL(blob);
-      link.setAttribute("href", url);
-      link.setAttribute("download", "evaluated_ideas.csv");
-      link.style.visibility = "hidden";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }    
-  }
+    if (type === "xlsx") {
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Evaluated Ideas");
+      XLSX.writeFile(wb, "evaluated_ideas.xlsx");
+
+    } else {
+      const asCSV = data.map((row) => row.join("|")).join("\n");
+      const blob = new Blob([asCSV], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", "evaluated_ideas.csv");
+        link.style.visibility = "hidden";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    }
+  };
 
   const [showReRankSection, setShowReRankSection] = useState(false);
   const [showStarRatingSection, setShowStarRatingSection] = useState(false);
@@ -213,17 +221,25 @@ export default function SessionPage({ params }: { params: { id: string } }) {
         <>
           <div className="flex justify-center items-center">
             <button
-                className="m-4 p-2 bg-slate-500 rounded-md shadow-lg"
-                onClick={exportToCSV}
-              >
+              className="m-4 p-2 bg-slate-500 rounded-md shadow-lg"
+              onClick={() => exportToFile("csv")}
+            >
               {"Export to CSV"}
+            </button>
+            <button
+              className="m-4 p-2 bg-slate-500 rounded-md shadow-lg"
+              onClick={() => exportToFile("xlsx")}
+            >
+              {"Export to XLSX"}
             </button>
             {version === "v2" && (
               <button
                 className="m-4 p-2 bg-blue-500 text-white rounded-md shadow-lg"
                 onClick={() => setShowStarRatingSection(!showStarRatingSection)}
-                >
-                {showStarRatingSection ? "Collapse" : "Expand Categorized Star Ranking View"}
+              >
+                {showStarRatingSection
+                  ? "Collapse"
+                  : "Expand Categorized Star Ranking View"}
               </button>
             )}
           </div>
@@ -317,12 +333,13 @@ export default function SessionPage({ params }: { params: { id: string } }) {
               {ideasAndSimScores && ideasAndSimScores.ideas.length < 200 && (
                 <div
                   ref={chartRef}
-                  className={`relative p-4 m-2 bg-white shadow-md rounded-lg transition-all duration-300 ${openDetail === "chart"
+                  className={`relative p-4 m-2 bg-white shadow-md rounded-lg transition-all duration-300 ${
+                    openDetail === "chart"
                       ? "w-4/5"
                       : openDetail === "table"
-                        ? "w-1/6 h-56"
-                        : "h-[500px] w-[450px]"
-                    }`}
+                      ? "w-1/6 h-56"
+                      : "h-[500px] w-[450px]"
+                  }`}
                 >
                   {openDetail === "chart" && (
                     <button
