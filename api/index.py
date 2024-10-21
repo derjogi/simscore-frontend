@@ -13,3 +13,6 @@ app = FastAPI()
 def index():
     # Do not delete. See above.
     return {"Hello There! To process ideas, send a list of strings to the /process endpoint."}
+
+@app.get("/session/{session_id}")
+def get_session(session_id: str):

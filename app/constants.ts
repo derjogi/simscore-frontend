@@ -1,8 +1,16 @@
+import { User } from "next-auth";
+
 export interface IdeasAndSimScores {
   ideas: string[];
   similarity: number[];
   distance: number[];
 }
+
+export interface ItemWithId {
+  id: number;
+}
+
+export type EvaluatedIdeaWithId = EvaluatedIdea & ItemWithId
   
 export interface PlotData {
   scatter_points: [[number, number]];
@@ -17,3 +25,20 @@ export interface KmeansData {
   centers: number[][];
   cluster: number[];
 }
+
+export interface Ratings {
+  userRatings: {
+    userId: string;
+    rating: number;
+  }[];
+}
+
+export interface EvaluatedIdea {
+  id?: string
+  idea: string;
+  similarity: number;
+  distance: number;
+  cluster: number;
+  ratings: Ratings;
+}
+
