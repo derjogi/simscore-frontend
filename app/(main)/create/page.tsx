@@ -1,15 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useRouter } from "next/navigation";
-import { PlotData, IdeasAndSimScores } from "@/constants";
 import Textarea from "react-dropzone-textarea";
 import * as XLSX from "xlsx";
-import { data } from "autoprefixer";
 import LZString from "lz-string";
+
 import { useSearchParams } from 'next/navigation';
 
-export default function Create() {
+function CreateContent() {
   const [input, setInput] = useState("");
   const [storeResults, setStoreResults] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -438,5 +437,14 @@ export default function Create() {
         </div>
       )}
     </>
+  );
+}
+
+
+export default function Create() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <CreateContent />
+    </Suspense>
   );
 }

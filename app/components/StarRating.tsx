@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Ratings } from '../constants';
 
-function StarRating({ allRatings, itemId, sessionId }: { allRatings: Ratings, itemId: number, sessionId: string }) {
+function StarRating({ allRatings, itemId, sessionId }: { allRatings: Ratings, itemId: string, sessionId: string }) {
   
   const calculateAverageRating = (allRatings: Ratings) => {
     const totalScore = allRatings.userRatings.map(rating => rating.rating).reduce((a, b) => a + b, 0);
@@ -19,7 +19,7 @@ function StarRating({ allRatings, itemId, sessionId }: { allRatings: Ratings, it
     submitRating(itemId, newRating);
   };
 
-  const submitRating = (itemId: number, rating: number) => {
+  const submitRating = (itemId: string, rating: number) => {
     const host = process.env.SIMSCORE_API;
     const ratingAPI = host + "/update-rating";
 

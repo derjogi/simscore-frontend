@@ -7,7 +7,7 @@ export interface IdeasAndSimScores {
 }
 
 export interface ItemWithId {
-  id: number;
+  id: string;
 }
 
 export type EvaluatedIdeaWithId = EvaluatedIdea & ItemWithId
