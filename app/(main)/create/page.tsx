@@ -40,7 +40,7 @@ function CreateContent() {
 
     const payload = {
       ideas: ideas,
-      store_results: storeResults,
+      store_results: true,
     };
     
     // This is being processed with python, which goes to a separate server:
@@ -405,7 +405,7 @@ function CreateContent() {
               className: "!bg-white border-2 rounded-lg p-2",
             }}
           />
-          <div className="flex items-center mb-4">
+          {/* <div className="flex items-center mb-4">
             <input
               id="store-results"
               type="checkbox"
@@ -419,7 +419,7 @@ function CreateContent() {
             >
               Store results to make them shareable
             </label>
-          </div>
+          </div> */}
 
             <button
               type="submit"
