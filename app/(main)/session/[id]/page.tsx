@@ -66,7 +66,7 @@ export default function SessionPage({ params }: { params: { id: string } }) {
   const fetchSessionData = async () => {
     console.log("Fetching data for session ID:", params.id);
     try {
-      const response = await fetch(`/api/session/${params.id}`);
+      const response = await fetch(`/fastapi/session/${params.id}`);
       if (!response.ok) {
         console.log(`HTTP error! status: ${response.status}`);
         setIsLoading(false);
