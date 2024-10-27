@@ -1,4 +1,5 @@
 import Link from "next/link"
+import Image from "next/image"
 
 export default function NavLayout({
   children,
@@ -9,8 +10,15 @@ export default function NavLayout({
     <>
       <nav className="bg-gray-800 text-white p-4">
         <div className="relative flex place-items-center">
-          <div className="text-2xl font-semibold relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert">
-            <Link href={"/"}><h1>SimScore</h1></Link>
+          <div className="text-2xl font-semibold relative">
+            <Link href={"/"}>
+              <Image
+                src="/SimScore_Logo_noborder.svg"
+                alt="SimScore Logo"
+                width={150}
+                height={50}
+              />
+            </Link>
           </div>
         </div>
       </nav>
