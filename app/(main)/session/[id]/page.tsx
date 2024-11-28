@@ -162,7 +162,42 @@ export default function SessionPage({ params }: { params: { id: string } }) {
     });
   };
 
-  const exportToFile = (type: "csv" | "xlsx") => {
+  const exportMatrix = () => {
+    if (!evaluatedIdeas) return;
+
+    const headers = plotData?.ideas.map(
+      (idea) => `"${idea.replace(/"/g, '""')}"`
+    ); // replace single quotes with double quotes, it's TSV standard)
+    if (!headers) return;
+    const firstRow = [...headers];
+    headers.unshift(""); // Insert an empty top-left cell
+    headers.push("Centroid");
+    firstRow.push("Centroid");
+    const pairwiseWithIdeaPrepended = plotData?.pairwise_similarity.map(
+      (scoresForOneIdeaAgainstAllOthers, index) => [
+        firstRow[index],
+        ...scoresForOneIdeaAgainstAllOthers,
+      ]
+    );
+    if (!pairwiseWithIdeaPrepended) return;
+  
+    const data = [headers, ...pairwiseWithIdeaPrepended];
+  
+    const asTSV = data.map((row) => row.join("\t")).join("\n");
+    const blob = new Blob([asTSV], { type: "text/tsv;charset=utf-8;" });
+    const link = document.createElement("a");
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", `pairwise_similarity_${params.id}.tsv`);
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
+  const exportToFile = (type: "csv" | "xlsx" | "matrix") => {
     if (!evaluatedIdeas) return;
 
     const headers = ["Idea", "Similarity Score", "Cluster", "Category"];
@@ -173,15 +208,16 @@ export default function SessionPage({ params }: { params: { id: string } }) {
     console.log("Headers: ", headers);
     const data = [
       headers,
-      ...evaluatedIdeas.map((idea, index) =>
-        [
-          ids.length > 0 ? ids[index] : null,
-          `"${idea.idea.replace(/"/g, '""')}"`, // replace single quotes with double quotes, it's CSV standard
-          idea.similarity,
-          idea.cluster+1, // If this was 0-based the boolean filter below would remove it, so we need to increase by 1. Better anyway.
-          summaries[idea.cluster],
-        ].filter(Boolean) // Removes nulls
-      ), 
+      ...evaluatedIdeas.map(
+        (idea, index) =>
+          [
+            ids.length > 0 ? ids[index] : null,
+            `"${idea.idea.replace(/"/g, '""')}"`, // replace single quotes with double quotes, it's CSV standard
+            idea.similarity,
+            idea.cluster + 1, // If this was 0-based the boolean filter below would remove it, so we need to increase by 1. Better anyway.
+            summaries[idea.cluster],
+          ].filter(Boolean) // Removes nulls
+      ),
     ];
 
     if (type === "xlsx") {
@@ -189,7 +225,6 @@ export default function SessionPage({ params }: { params: { id: string } }) {
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Evaluated Ideas");
       XLSX.writeFile(wb, "evaluated_ideas.xlsx");
-
     } else {
       const asCSV = data.map((row) => row.join("|")).join("\n");
       const blob = new Blob([asCSV], { type: "text/csv;charset=utf-8;" });
@@ -231,6 +266,12 @@ export default function SessionPage({ params }: { params: { id: string } }) {
               onClick={() => exportToFile("xlsx")}
             >
               {"Export to XLSX"}
+            </button>
+            <button
+              className="m-4 p-2 bg-slate-500 rounded-md shadow-lg"
+              onClick={() => exportMatrix()}
+            >
+              {"Export pairwise similarity"}
             </button>
             {version === "v2" && (
               <button
