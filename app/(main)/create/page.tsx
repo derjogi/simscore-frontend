@@ -38,8 +38,12 @@ function CreateContent() {
   const handleSubmit = async (ideas: string[][] | string[]) => {        
     setIsLoading(true);
 
+    const filteredIdeas = Array.isArray(ideas[0]) 
+      ? (ideas as string[][]).map(row => row.filter(cell => cell.trim() !== '')).filter(row => row.length > 0)
+      : (ideas as string[]).filter(idea => idea.trim() !== '')
+    
     const payload = {
-      ideas: ideas,
+      ideas: filteredIdeas,
       store_results: true,
     };
     
