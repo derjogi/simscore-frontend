@@ -39,7 +39,7 @@ function CreateContent() {
     setIsLoading(true);
 
     const filteredIdeas = Array.isArray(ideas[0]) 
-      ? (ideas as string[][]).map(row => row.filter(cell => cell.trim() !== '')).filter(row => row.length > 0)
+      ? (ideas as string[][]).map(row => row.filter(cell => cell !== null && cell !== undefined && String(cell).trim() !== '')).filter(row => row.length > 0)
       : (ideas as string[]).filter(idea => idea.trim() !== '')
     
     const payload = {
@@ -58,15 +58,23 @@ function CreateContent() {
       redirect: "follow",
       body: JSON.stringify(payload),
     })
-      .then((res) => res.json())
-      .then((data) => {
-        console.log("Data: ", data);
-        setIsLoading(false);
-        setId(data.id);
-        const compressedData = LZString.compress(JSON.stringify(data));
-        localStorage.setItem(`sessionData_${data.id}`, compressedData);
-        router.push(`/session/${data.id}`);
-      });
+    .then((res) => {
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      return res.json();
+    })
+    .then((data) => {
+      console.log("Data: ", data);
+      setIsLoading(false);
+      setId(data.id);
+      const compressedData = LZString.compress(JSON.stringify(data));
+      localStorage.setItem(`sessionData_${data.id}`, compressedData);
+      router.push(`/session/${data.id}`);
+    }).catch((error) => {
+      setIsLoading(false);
+      console.error("Processing failed:", error);
+    });
   };
 
   const customTextConverter = (binary: any) => {
