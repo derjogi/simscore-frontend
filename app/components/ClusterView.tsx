@@ -18,7 +18,7 @@ const  ClusterView: React.FC<ClusterViewProps> = ({ data, clusterTitles: cluster
       <div className="contents sm:columns-2 lg:columns-3">
           {clusters.map((category, index) => {
             
-            const ideasForThisCluster: EvaluatedIdeaWithId[] = ideasWithIDs.filter(idea => idea.cluster === index);
+            const ideasForThisCluster: EvaluatedIdeaWithId[] = ideasWithIDs.filter(idea => idea.cluster_id === index);
             return (
               <div key={index} className="break-inside-avoid mb-6">
 

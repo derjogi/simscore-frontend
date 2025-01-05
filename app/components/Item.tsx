@@ -24,9 +24,8 @@ function Item({ idea, sessionId }: { idea: EvaluatedIdeaWithId, sessionId: strin
     >
       <h3 className="text-lg font-medium mb-2">{idea.idea}</h3>
       <p className="text-sm text-gray-600 mb-2">
-        Distance: {idea.distance.toFixed(2)}
+        Similarity: {idea.similarity_score.toFixed(2)}
       </p>
-        <StarRating allRatings={idea.ratings} itemId={idea.id} sessionId={sessionId}/>
     </div>
   );
 }

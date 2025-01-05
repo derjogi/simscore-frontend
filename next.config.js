@@ -13,6 +13,9 @@ const nextConfig = {
       destination: `${BACKEND_URL}/:path*`,
     },
   ],
+  experimental: {
+    proxyTimeout: 300000
+  }
 };
 
 module.exports = nextConfig;

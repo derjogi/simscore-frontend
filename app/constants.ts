@@ -12,13 +12,13 @@ export interface ItemWithId {
 
 export type EvaluatedIdeaWithId = EvaluatedIdea & ItemWithId
   
-export interface PlotData {
-  scatter_points: [[number, number]];
-  marker_sizes: [[number]];
-  ideas: [string];
-  pairwise_similarity: [[number]];
-  kmeans_data?: KmeansData;
-}
+// export interface PlotData {
+//   scatter_points: [[number, number]];
+//   marker_sizes: [[number]];
+//   ideas: [string];
+//   pairwise_similarity: [[number]];
+//   kmeans_data?: KmeansData;
+// }
 
 export interface KmeansData {
   data: number[][];
@@ -34,11 +34,34 @@ export interface Ratings {
 }
 
 export interface EvaluatedIdea {
-  id?: string
+  id: string | number
+  author_id?: string
   idea: string;
-  similarity: number;
-  distance: number;
-  cluster: number;
-  ratings: Ratings;
+  similarity_score: number;
+  cluster_id: number;
 }
 
+interface GraphNode {
+  id: string | number
+  coordinates: {
+    x: number,
+    y: number
+  }
+}
+
+interface GraphEdge {
+    from_id: number
+    to_id: number
+    similarity: number
+}
+
+export interface RelationshipGraph {
+    nodes: GraphNode[]
+    edges: GraphEdge[]
+}
+
+export interface AnalysisResponse {
+    ranked_ideas: EvaluatedIdea[]
+    relationship_graph?: RelationshipGraph
+    pairwise_similarity_matrix?: number[][]
+}

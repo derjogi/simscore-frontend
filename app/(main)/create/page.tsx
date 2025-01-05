@@ -35,20 +35,49 @@ function CreateContent() {
   const handleSubmitXLS = async (processedData: string[][]) => {
     handleSubmit(processedData);
   }
+
+  type IdeaInput = {
+    id?: number | string
+    author_id?: number | string
+    idea: string
+  }
+
+  type IdeaRequest = {
+    ideas: IdeaInput[]
+    advanced_features?: {
+      relationship_graph: boolean,
+      pairwise_similarity_matrix: boolean,
+      cluster_names: boolean
+    }
+  }
+
   const handleSubmit = async (ideas: string[][] | string[]) => {        
     setIsLoading(true);
 
     const filteredIdeas = Array.isArray(ideas[0]) 
-      ? (ideas as string[][]).map(row => row.filter(cell => cell.trim() !== '')).filter(row => row.length > 0)
-      : (ideas as string[]).filter(idea => idea.trim() !== '')
+      ? (ideas as string[][])
+        .map(row => row.filter(cell => cell !== null && cell !== undefined && String(cell).trim() !== ''))
+        .filter(row => row.length > 0)
+        .map(row => ({
+          id: row[0],
+          idea: row[1]
+        }))
+      : (ideas as string[]).filter(idea => idea.trim() !== '').map((idea, index) => ({
+          id: index,
+          idea: idea
+        }))
     
-    const payload = {
+    const payload: IdeaRequest = {
       ideas: filteredIdeas,
-      store_results: true,
+      advanced_features: {
+        relationship_graph: true,
+        pairwise_similarity_matrix: true,
+        cluster_names: true
+      }
     };
     
     // This is being processed with python, which goes to a separate server:
-    const processAPI = "/fastapi/process";
+    const processAPI = "/fastapi/v1/rank-ideas";
   
     fetch(processAPI, {
       method: "POST",
@@ -58,15 +87,23 @@ function CreateContent() {
       redirect: "follow",
       body: JSON.stringify(payload),
     })
-      .then((res) => res.json())
-      .then((data) => {
-        console.log("Data: ", data);
-        setIsLoading(false);
-        setId(data.id);
-        const compressedData = LZString.compress(JSON.stringify(data));
-        localStorage.setItem(`sessionData_${data.id}`, compressedData);
-        router.push(`/session/${data.id}`);
-      });
+    .then((res) => {
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      return res.json();
+    })
+    .then((data) => {
+      console.log("Data: ", data);
+      setIsLoading(false);
+      setId(data.id);
+      const compressedData = LZString.compress(JSON.stringify(data));
+      localStorage.setItem(`sessionData_${data.id}`, compressedData);
+      router.push(`/session/${data.id}`);
+    }).catch((error) => {
+      setIsLoading(false);
+      console.error("Processing failed:", error);
+    });
   };
 
   const customTextConverter = (binary: any) => {
