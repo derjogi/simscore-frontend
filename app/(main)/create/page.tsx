@@ -67,6 +67,8 @@ function CreateContent() {
           idea: idea
         }))
     
+    console.log('Filtered ideas: ', filteredIdeas)
+    
     const payload: IdeaRequest = {
       ideas: filteredIdeas,
       advanced_features: {
@@ -377,7 +379,6 @@ function CreateContent() {
                 .map((row) => [row[idColumn], row[dataColumn]])
                 .filter(([id, data]) => id !== undefined && data !== undefined);
               setShowPreview(false);
-              console.log(`Processed data: `, processedData)
               handleSubmitXLS(processedData)
             }
           }}

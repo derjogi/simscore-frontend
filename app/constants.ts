@@ -50,8 +50,8 @@ interface GraphNode {
 }
 
 interface GraphEdge {
-    from_id: number
-    to_id: number
+    from_id: number | string
+    to_id: number | string
     similarity: number
 }
 

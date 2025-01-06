@@ -4,6 +4,7 @@ import { EvaluatedIdea, RelationshipGraph } from "../constants"
 import { Bubble } from "react-chartjs-2";
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import annotationPlugin from 'chartjs-plugin-annotation';
+import { ChartEvent } from 'chart.js/dist/core/core.interaction';
 
 interface BubbleChartProps {
   plotData: RelationshipGraph;
@@ -25,6 +26,7 @@ const BubbleChart = React.memo((props: BubbleChartProps) => {
     }
     return ranked.similarity_score;
   });
+  // rankedIdeas.sort((a, b) => a.similarity_score - b.similarity_score)
   const ideas = rankedIdeas.map(ranked => ranked.idea);
   const minSize = 2;
   const maxSize = 15;
@@ -68,46 +70,46 @@ const BubbleChart = React.memo((props: BubbleChartProps) => {
           if (value.label == scatterPoints.length - 1) {
             return "Centroid";
           }
-          return value.label + 1;
+          return rankedIdeas[Number(value.label)].id;
         },
       }
     }]
   };
 
-  const weightedLines = Object.fromEntries(plotData.edges.map((edge, i) => {
-    const from = scatterPoints.find(point => edge.from_id === point.id)
-    const to = scatterPoints.find(point => edge.to_id === point.id)
-    if (!from || !to) throw new Error("Didn't find expected coordinates for x/y")
-    if (edge.similarity < 0.15) return []
-    return [
-      `line${edge.from_id}_${edge.to_id}`,
-      {
-        type: "line",
-        xMin: from.coordinates.x,
-        xMax: to.coordinates.x,
-        yMin: from.coordinates.y,
-        yMax: to.coordinates.y,
-        borderColor: "rgba(111, 111, 132)",
-        borderWidth: edge.similarity,
-      },
-    ]
-  }));
+  function getStrongestConnections(id: number | string) {
+    const edges = plotData.edges.filter(edge => (String(edge.from_id) === String(id) || String(edge.to_id) === String(id)))
+    console.log(`Found ${edges.length} edges for ${id}`)
+    const bestConnections = edges.sort((a, b) => b.similarity - a.similarity).slice(0, Math.min(10, edges.length))
+    const connectedPointsIndices = new Set(bestConnections.flatMap(edge => [edge.from_id, edge.to_id]))
+    const asLines = bestConnections.map(edge => {
+      const from = scatterPoints.find(point => edge.from_id === point.id)
+      const to = scatterPoints.find(point => edge.to_id === point.id)
+      if (!from || !to) throw new Error("Didn't find expected coordinates for x/y");
+      return {
+          type: "line",
+          xMin: from.coordinates.x,
+          xMax: to.coordinates.x,
+          yMin: from.coordinates.y,
+          yMax: to.coordinates.y,
+          borderColor: "rgba(111, 111, 132)",
+          borderWidth: edge.similarity,
+        }
+    })
+    console.log('Lines to draw: ', asLines)
+    return { connectedPointsIndices, asLines }
+  } 
 
-  const xMin = Math.min(...scatterPoints.map(node => node.coordinates.x));
-  const xMax = Math.max(...scatterPoints.map(node => node.coordinates.x));
-  const yMin = Math.min(...scatterPoints.map(node => node.coordinates.y));
-  const yMax = Math.max(...scatterPoints.map(node => node.coordinates.y));
-  const min = Math.min(xMin, yMin)
-  const max = Math.max(xMax, yMax)
+
+  function idLookupFromIndex(index: number) {
+    if (index === rankedIdeas.length) return 'Centroid'
+    return rankedIdeas[index].id
+  }
 
   const options = {
     plugins: {
       title: {
         display: true,
         text: "Displays the distance of each idea to the Centroid and each other."
-      },
-      annotation: {
-        annotations: weightedLines
       },
       tooltip: {
         callbacks: {
@@ -116,22 +118,43 @@ const BubbleChart = React.memo((props: BubbleChartProps) => {
             if (dataPoint.label == scatterPoints.length - 1) {
               return "Centroid"
             }
-            return `Idea ${dataPoint.label + 1}: ${ideas[dataPoint.label]}`;
+            // return `Idea ${dataPoint.label + 1}: ${ideas[dataPoint.label]}`;
+            return '';
           }
         }
       }
+    },
+    onClick: (event: ChartEvent, elements, chart: any) => {
+      if (elements.length > 0) {
+        const id = idLookupFromIndex(elements[0].index);
+        const { connectedPointsIndices, asLines } = getStrongestConnections(id);
+        chart.options.plugins.annotation.annotations = asLines 
+        const selectedIdea = rankedIdeas.find(p => p.id === id);
+        chart.data.datasets[0].backgroundColor = rankedIdeas.map((idea, index) => {
+          const isConnected = connectedPointsIndices.has(idLookupFromIndex(index));
+          const isSameCluster = selectedIdea && idea.cluster_id === selectedIdea.cluster_id;
+          return isConnected 
+            ? colors[index].replace(/[\d.]+\)$/, '1)') 
+            : isSameCluster ? colors[index]
+            : '#fff';
+        });
+      } else {
+        chart.options.plugins.annotation.annotations = {};
+        chart.data.datasets[0].backgroundColor = colors
+      }
+      chart.update('none');
     },
     aspectRatio: 1,
     scales: {
       x: {
         type: "linear",
-        min: min,
-        max: max
+        min: -1,
+        max: 1
       },
       y: {
         type: "linear",
-        min: min,
-        max: max
+        min: -1,
+        max: 1
       },
     }
   } as ChartOptions<"bubble">;
