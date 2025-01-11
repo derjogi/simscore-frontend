@@ -105,6 +105,9 @@ const BubbleChart = React.memo((props: BubbleChartProps) => {
     return rankedIdeas[index].id
   }
 
+  const connections = new Map(rankedIdeas.map(idea => [idea.id, getStrongestConnections(idea.id)]))
+  connections.set('Centroid', getStrongestConnections('Centroid'))
+
   const options = {
     plugins: {
       title: {
@@ -122,12 +125,16 @@ const BubbleChart = React.memo((props: BubbleChartProps) => {
             return '';
           }
         }
+      },
+      annotation: {
+        annotations: Array.from(connections.values()).map(connection => connection.asLines).flat()
       }
     },
     onClick: (event: ChartEvent, elements, chart: any) => {
       if (elements.length > 0) {
         const id = idLookupFromIndex(elements[0].index);
-        const { connectedPointsIndices, asLines } = getStrongestConnections(id);
+        console.log(id)
+        let { connectedPointsIndices, asLines } = connections.get(id)!;
         chart.options.plugins.annotation.annotations = asLines 
         const selectedIdea = rankedIdeas.find(p => p.id === id);
         chart.data.datasets[0].backgroundColor = rankedIdeas.map((idea, index) => {
@@ -139,7 +146,8 @@ const BubbleChart = React.memo((props: BubbleChartProps) => {
             : '#fff';
         });
       } else {
-        chart.options.plugins.annotation.annotations = {};
+        const allStrongestConnections = Array.from(connections.values()).map(connection => connection.asLines).flat();
+        chart.options.plugins.annotation.annotations = allStrongestConnections;
         chart.data.datasets[0].backgroundColor = colors
       }
       chart.update('none');
