@@ -7,6 +7,7 @@ import * as XLSX from "xlsx";
 import LZString from "lz-string";
 
 import { useSearchParams } from 'next/navigation';
+import { processIdeas } from "./actions";
 
 function CreateContent() {
   const [input, setInput] = useState("");
@@ -80,33 +81,18 @@ function CreateContent() {
     };
     
     // This is being processed with python, which goes to a separate server:
-    const processAPI = "/fastapi/v1/rank-ideas";
-  
-    fetch(processAPI, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      redirect: "follow",
-      body: JSON.stringify(payload),
-    })
-    .then((res) => {
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
-      return res.json();
-    })
-    .then((data) => {
-      console.log("Data: ", data);
-      setIsLoading(false);
-      setId(data.id);
-      const compressedData = LZString.compress(JSON.stringify(data));
-      localStorage.setItem(`sessionData_${data.id}`, compressedData);
-      router.push(`/session/${data.id}`);
-    }).catch((error) => {
-      setIsLoading(false);
-      console.error("Processing failed:", error);
-    });
+    await processIdeas(payload)
+      .then((data) => {
+        console.log("Data: ", data);
+        setIsLoading(false);
+        setId(data.id);
+        const compressedData = LZString.compress(JSON.stringify(data));
+        localStorage.setItem(`sessionData_${data.id}`, compressedData);
+        router.push(`/session/${data.id}`);
+      }).catch((error) => {
+        setIsLoading(false);
+        console.error("Processing failed:", error);
+      }).finally(() => setIsLoading(false));
   };
 
   const customTextConverter = (binary: any) => {
@@ -335,7 +321,7 @@ function CreateContent() {
   };
 
   function queryForIdeaValidity(idea: string, index: number) {
-    const host = process.env.SIMSCORE_API;
+    const host = process.env.NEXT_PUBLIC_SIMSCORE_API;
     const validateAPI = host + "/validate";
     const body = JSON.stringify({ idea: idea });
     console.log("Querying for idea validity: ", body);

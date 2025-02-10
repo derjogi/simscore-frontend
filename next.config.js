@@ -1,12 +1,8 @@
 /** @type {import('next').NextConfig} */
 
-const PORT_BACKEND = process.env.PORT_BACKEND || 8000;
-const BACKEND_URL = process.env.BACKEND_URL || `http://127.0.0.1:${PORT_BACKEND}`;
+const BACKEND_URL = process.env.NEXT_PUBLIC_SIMSCORE_API || `http://127.0.0.1:8000`;
 
 const nextConfig = {
-  env: {
-    SIMSCORE_API: `${BACKEND_URL}`,
-  },
   rewrites: async () => [
     {
       source: `/fastapi/:path*`,
