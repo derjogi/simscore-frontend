@@ -20,7 +20,7 @@ function StarRating({ allRatings, itemId, sessionId }: { allRatings: Ratings, it
   };
 
   const submitRating = (itemId: string, rating: number) => {
-    const host = process.env.SIMSCORE_API;
+    const host = process.env.NEXT_PUBLIC_SIMSCORE_API;
     const ratingAPI = host + "/update-rating";
 
     const payload = {

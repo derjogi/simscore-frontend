@@ -2,10 +2,7 @@
 import BubbleChart from "@/app/components/BubbleChart";
 import {
   EvaluatedIdea,
-  IdeasAndSimScores,
-  KmeansData,
-  PlotData,
-  Ratings,
+  RelationshipGraph,
 } from "@/app/constants";
 import { useState, useEffect, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -16,12 +13,14 @@ import { useSearchParams } from "next/navigation";
 import * as XLSX from "xlsx";
 
 export default function SessionPage({ params }: { params: { id: string } }) {
-  const [ideasAndSimScores, setIdeasAndSimScores] =
-    useState<IdeasAndSimScores>();
-  const [plotData, setPlotData] = useState<PlotData>();
+  // const [ideasAndSimScores, setIdeasAndSimScores] =
+  //   useState<IdeasAndSimScores>();
+  // const [plotData, setPlotData] = useState<PlotData>();
+  const [pairwiseSimMatrix, setPairwiseSimilarityMatrix] = useState<number[][] | null>()
+  const [relationshipGraph, setRelationshipGraph] = useState<RelationshipGraph | null>()
   const [isLoading, setIsLoading] = useState(true);
   const [evaluatedIdeas, setEvaluatedIdeas] = useState<EvaluatedIdea[]>([]);
-  const [summaries, setSummaries] = useState<string[]>([]);
+  const [summaries, setSummaries] = useState<{ id: number, name: string }[]>([]);
   const [showSubmitButton, setShowSubmitButton] = useState(true);
   const [name, setName] = useState("");
   const [ids, setIds] = useState<string[]>([]);
@@ -44,19 +43,12 @@ export default function SessionPage({ params }: { params: { id: string } }) {
       const decompressedData = LZString.decompress(compressedData);
       const data = JSON.parse(decompressedData);
       console.log("Data found in localStorage:", data);
-      setIdeasAndSimScores(data.results);
-      setPlotData(data.plot_data);
-      const evaluatedIdeas = createEvaluatedIdeas(
-        data.results,
-        data.plot_data.kmeans_data,
-        data.ratings
-      );
-      if (data.results.ids) {
-        setIds(data.results.ids);
-      }
-
-      setEvaluatedIdeas(evaluatedIdeas);
-      setSummaries(data.summaries);
+      const rankedIdeas: EvaluatedIdea[] = data.ranked_ideas
+      setEvaluatedIdeas(rankedIdeas);
+      setIds(rankedIdeas.map(idea => String(idea.id)))
+      setPairwiseSimilarityMatrix(data.pairwise_similarity_matrix)
+      setRelationshipGraph(data.relationship_graph)
+      setSummaries(data.cluster_names);
       setIsLoading(false);
     } else {
       console.log("no data in localStorage 😢");
@@ -93,46 +85,6 @@ export default function SessionPage({ params }: { params: { id: string } }) {
     }
   };
 
-  function createEvaluatedIdeas(
-    ideasAndScores: IdeasAndSimScores,
-    kmeansData: KmeansData,
-    ratings: Ratings[]
-  ): EvaluatedIdea[] {
-    return ideasAndScores.ideas.map((idea, index) => ({
-      idea,
-      similarity: ideasAndScores.similarity[index],
-      distance: ideasAndScores.distance[index],
-      cluster: kmeansData.cluster[index],
-      ratings: ratings && ratings[index] ? ratings[index] : { userRatings: [] },
-    }));
-  }
-
-  async function submitNewRanking(name: string) {
-    console.log("Submitting reranked data.");
-    const host = process.env.SIMSCORE_API;
-    try {
-      const response = await fetch(`${host}/session/${params.id}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        redirect: "follow",
-        body: JSON.stringify({ name: name, ideasAndSimScores }),
-      });
-      if (response.ok) {
-        setShowSubmitButton(false);
-        console.log("Successfully submitted data.");
-      } else {
-        setShowSubmitButton(true);
-        console.log("Na uh, something went wrong: ", response.status);
-        throw new Error("Failed to submit data: ", await response.json());
-      }
-    } catch (error) {
-      console.error("Error:", error);
-      alert("Failed to submit data.");
-    }
-  }
-
   const [openDetail, setOpenDetail] = useState<string | null>(null);
   const [showPopup, setShowPopup] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -154,7 +106,7 @@ export default function SessionPage({ params }: { params: { id: string } }) {
     return () => window.removeEventListener("resize", updateDivHeight);
   }, []);
 
-  const handleRowClick = (idea: string, event: React.MouseEvent) => {
+  const copyToClipboard = (idea: string, event: React.MouseEvent) => {
     setMousePosition({ x: event.clientX, y: event.clientY });
     navigator.clipboard.writeText(idea).then(() => {
       setShowPopup(true);
@@ -163,17 +115,17 @@ export default function SessionPage({ params }: { params: { id: string } }) {
   };
 
   const exportMatrix = () => {
-    if (!evaluatedIdeas) return;
+    if (!evaluatedIdeas || !pairwiseSimMatrix) return;
 
-    const headers = plotData?.ideas.map(
-      (idea) => `"${idea.replace(/"/g, '""')}"`
+    const headers = evaluatedIdeas.map(
+      (evaluated) => `"${evaluated.idea.replace(/"/g, '""')}"`
     ); // replace single quotes with double quotes, it's TSV standard)
     if (!headers) return;
     const firstRow = [...headers];
     headers.unshift(""); // Insert an empty top-left cell
     headers.push("Centroid");
     firstRow.push("Centroid");
-    const pairwiseWithIdeaPrepended = plotData?.pairwise_similarity.map(
+    const pairwiseWithIdeaPrepended = pairwiseSimMatrix.map(
       (scoresForOneIdeaAgainstAllOthers, index) => [
         firstRow[index],
         ...scoresForOneIdeaAgainstAllOthers,
@@ -200,23 +152,28 @@ export default function SessionPage({ params }: { params: { id: string } }) {
   const exportToFile = (type: "csv" | "xlsx" | "matrix") => {
     if (!evaluatedIdeas) return;
 
-    const headers = ["Idea", "Similarity Score", "Cluster", "Category"];
+    const headers = ["Idea", "Similarity Score", "Cluster"];
     if (ids.length > 0) {
       headers.unshift("ID");
+    }
+    if (summaries) {
+      headers.push("Category")
     }
     console.log("Ids: ", ids);
     console.log("Headers: ", headers);
     const data = [
       headers,
       ...evaluatedIdeas.map(
-        (idea, index) =>
-          [
+        (idea, index) => {
+         console.log("Idea: ", idea)
+          return [
             ids.length > 0 ? ids[index] : null,
             `"${idea.idea.replace(/"/g, '""')}"`, // replace single quotes with double quotes, it's CSV standard
-            idea.similarity,
-            idea.cluster + 1, // If this was 0-based the boolean filter below would remove it, so we need to increase by 1. Better anyway.
-            summaries[idea.cluster],
-          ].filter(Boolean) // Removes nulls
+            idea.similarity_score,
+            idea.cluster_id + 1, // If this was 0-based the boolean filter below would remove it, so we need to increase by 1. Better anyway.
+            summaries ? summaries.find(summary => summary.id === idea.cluster_id)?.name : null,
+          ].filter(Boolean) // Removes nulls        
+        }
       ),
     ];
 
@@ -252,7 +209,7 @@ export default function SessionPage({ params }: { params: { id: string } }) {
         </div>
       )}
 
-      {plotData && !isLoading && (
+      {relationshipGraph && !isLoading && (
         <>
           <div className="flex justify-center items-center">
             <button
@@ -290,7 +247,7 @@ export default function SessionPage({ params }: { params: { id: string } }) {
               <div className="p-8">
                 <ClusterView
                   data={evaluatedIdeas}
-                  clusterTitles={summaries}
+                  clusterTitles={summaries.sort((a, b) => a.id - b.id).map(cluster => cluster.name)}
                   sessionId={params.id}
                 />
               </div>
@@ -326,23 +283,19 @@ export default function SessionPage({ params }: { params: { id: string } }) {
                           <td className="px-4">#</td>
                           <td className="px-4">Idea</td>
                           <td className="px-4">Similarity</td>
-                          <td className="px-4">Distance</td>
                         </tr>
                       </thead>
                       <tbody>
-                        {ideasAndSimScores?.ideas.map((idea, i) => (
+                        {evaluatedIdeas?.map((evalIdea, i) => (
                           <tr
                             key={i}
                             className="px-4 hover:bg-slate-100 cursor-copy"
-                            onClick={(e) => handleRowClick(idea, e)}
+                            onClick={(e) => copyToClipboard(evalIdea.idea, e)}
                           >
                             <td className="px-4">{i + 1}</td>
-                            <td className="px-4">{idea}</td>
+                            <td className="px-4">{evalIdea.idea}</td>
                             <td className="px-4">
-                              {ideasAndSimScores.similarity[i].toFixed(2)}
-                            </td>
-                            <td className="px-4">
-                              {ideasAndSimScores.distance[i].toFixed(2)}
+                              {evalIdea.similarity_score.toFixed(2)}
                             </td>
                           </tr>
                         ))}
@@ -371,7 +324,7 @@ export default function SessionPage({ params }: { params: { id: string } }) {
                   {openDetail === "table" ? collapse : expand}
                 </button>
               </div>
-              {ideasAndSimScores && ideasAndSimScores.ideas.length < 200 && (
+              {evaluatedIdeas && evaluatedIdeas.length < 200 && (
                 <div
                   ref={chartRef}
                   className={`relative p-4 m-2 bg-white shadow-md rounded-lg transition-all duration-300 ${
@@ -392,7 +345,7 @@ export default function SessionPage({ params }: { params: { id: string } }) {
                   )}
                   <div className="w-full flex items-center justify-center">
                     <div className="p-4 w-full h-full">
-                      <BubbleChart plotData={plotData} />
+                      <BubbleChart plotData={relationshipGraph} rankedIdeas={evaluatedIdeas}/>
                     </div>
                   </div>
                   <button
@@ -410,19 +363,19 @@ export default function SessionPage({ params }: { params: { id: string } }) {
           {version === "v2" && (
             <div className="w-full flex items-center justify-center">
               <div className="p-4 w-full h-full">
-                <BubbleChart plotData={plotData} />
+              <BubbleChart plotData={relationshipGraph} rankedIdeas={evaluatedIdeas}/>
               </div>
             </div>
           )}
 
-          {ideasAndSimScores && ideasAndSimScores.ideas.length >= 200 && (
+          {evaluatedIdeas && evaluatedIdeas.length >= 200 && (
             <div className="flex justify-center items-center">
               {"Cannot display SimScore chart for more than 200 statements."}
             </div>
           )}
         </>
       )}
-      {!isLoading && !plotData && (
+      {!isLoading && !evaluatedIdeas && (
         <div className="flex justify-center items-center">
           {"Aww, sorry. We couldn't find any data for that session."}
         </div>

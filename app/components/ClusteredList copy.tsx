@@ -50,8 +50,7 @@ const SortableItem: React.FC<SortableItemProps> = ({ id, idea, summary, original
         </div>
         {idea && (
           <div className="text-sm text-gray-500 text-right md:flex md:flex-col">
-            <span className="mr-2 whitespace-nowrap md:mr-0">Similarity: {idea.similarity.toFixed(2)}</span>
-            <span className="whitespace-nowrap">Distance: {idea.distance.toFixed(2)}</span>
+            <span className="mr-2 whitespace-nowrap md:mr-0">Similarity: {idea.similarity_score.toFixed(2)}</span>
           </div>
         )}
       </div>
@@ -66,8 +65,8 @@ const ClusteredList: React.FC<ClusteredListProps> = ({ ideas, summaries }) => {
     <ul className='space-y-2'>
       {ideas.map((idea, index) => {
         const elements = [];
-        if (idea.cluster !== currentCluster) {
-          currentCluster = idea.cluster;
+        if (idea.cluster_id !== currentCluster) {
+          currentCluster = idea.cluster_id;
           elements.push(
             <li
                 key={`summary-${currentCluster}`}

@@ -1,28 +1,43 @@
 import React from 'react'
 import { Chart, ChartData, BubbleDataPoint, ChartOptions, CategoryScale } from 'chart.js/auto';
-import { PlotData } from "../constants"
+import { EvaluatedIdea, RelationshipGraph } from "../constants"
 import { Bubble } from "react-chartjs-2";
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import annotationPlugin from 'chartjs-plugin-annotation';
+import { ChartEvent } from 'chart.js/dist/core/core.interaction';
 
 interface BubbleChartProps {
-  plotData: PlotData;
+  plotData: RelationshipGraph;
+  rankedIdeas: EvaluatedIdea[];
 }
 
-const BubbleChart = React.memo(({ plotData }: BubbleChartProps) => {
+const BubbleChart = React.memo((props: BubbleChartProps) => {
   Chart.register(annotationPlugin);
   Chart.register(ChartDataLabels);
   Chart.register(CategoryScale);
-  const { scatter_points, marker_sizes, ideas, pairwise_similarity } = plotData;
+  const { plotData, rankedIdeas } = props;
+  const scatterPoints = plotData.nodes;
+  const centroid = scatterPoints.at(-1)!;
+  console.log("Centroid coords: ", centroid)
+  const markerSizes: number[] = scatterPoints.slice(0, -1).map(point => {
+    const ranked = rankedIdeas.find(ranked => ranked.id === point.id);
+    if (!ranked) {
+      throw new Error(`No ranked idea found for point id ${point.id}`);
+    }
+    return ranked.similarity_score;
+  });
+  // rankedIdeas.sort((a, b) => a.similarity_score - b.similarity_score)
+  const ideas = rankedIdeas.map(ranked => ranked.idea);
   const minSize = 2;
-  const maxSize = Math.max(15, marker_sizes.slice(-1)[0][0]);
+  const maxSize = 15;
+  const minMarker = Math.min(...markerSizes);
+  const maxMarker = Math.max(...markerSizes);
   const normalizedMarkerSizes =
     [
-      ...marker_sizes.slice(0, -1).map((size) => {
-        const minValue = Math.min(...marker_sizes.slice(0, -1).flat());
-        const maxValue = Math.max(...marker_sizes.slice(0, -1).flat());
-        const normalizedValue = (size[0] - minValue) / (maxValue - minValue);
-        return minSize + normalizedValue * (maxSize - minSize);
+      ...markerSizes.map((size) => {
+        const normalizedValue = (size - minMarker) / (maxMarker - minMarker);
+        const normalized = minSize + normalizedValue * (maxSize - minSize);
+        return normalized;
       }),
       maxSize
     ];
@@ -39,10 +54,10 @@ const BubbleChart = React.memo(({ plotData }: BubbleChartProps) => {
     labels: [...ideas, "Centroid"],
     datasets: [{
       label: 'Statements',
-      data: scatter_points.map(
-        ([x, y], i) => ({
-          x,
-          y,
+      data: scatterPoints.map(
+        (node, i) => ({
+          x: node.coordinates.x,
+          y: node.coordinates.y,
           r: normalizedMarkerSizes[i],
           label: i, // To uniquely identify this item. This is not printed to the UI.
         })
@@ -52,38 +67,46 @@ const BubbleChart = React.memo(({ plotData }: BubbleChartProps) => {
         anchor: 'end',
         align: 'top',
         formatter: (value, ctx) => {
-          if (value.label == scatter_points.length - 1) {
+          if (value.label == scatterPoints.length - 1) {
             return "Centroid";
           }
-          return value.label + 1;
+          return rankedIdeas[Number(value.label)].id;
         },
       }
     }]
   };
 
-  const weightedLines = Object.fromEntries(
-    pairwise_similarity.flatMap((distances, i) =>
-      scatter_points.map((point, j) => [
-        `line${i + 1}_${j + 1}`,
-        {
+  function getStrongestConnections(id: number | string) {
+    const edges = plotData.edges.filter(edge => (String(edge.from_id) === String(id) || String(edge.to_id) === String(id)))
+    console.log(`Found ${edges.length} edges for ${id}`)
+    const bestConnections = edges.sort((a, b) => b.similarity - a.similarity).slice(0, Math.min(10, edges.length))
+    const connectedPointsIndices = new Set(bestConnections.flatMap(edge => [edge.from_id, edge.to_id]))
+    const asLines = bestConnections.map(edge => {
+      const from = scatterPoints.find(point => edge.from_id === point.id)
+      const to = scatterPoints.find(point => edge.to_id === point.id)
+      if (!from || !to) throw new Error("Didn't find expected coordinates for x/y");
+      return {
           type: "line",
-          xMin: scatter_points[i][0],
-          xMax: point[0],
-          yMin: scatter_points[i][1],
-          yMax: point[1],
-          borderColor: "rgba(111, 111, 132, 1)",
-          borderWidth: distances[j],
-        },
-      ])
-    )
-  );
+          xMin: from.coordinates.x,
+          xMax: to.coordinates.x,
+          yMin: from.coordinates.y,
+          yMax: to.coordinates.y,
+          borderColor: "rgba(111, 111, 132)",
+          borderWidth: edge.similarity,
+        }
+    })
+    console.log('Lines to draw: ', asLines)
+    return { connectedPointsIndices, asLines }
+  } 
 
-  const xMin = Math.min(...scatter_points.map(([x, y]) => x));
-  const xMax = Math.max(...scatter_points.map(([x, y]) => x));
-  const yMin = Math.min(...scatter_points.map(([x, y]) => y));
-  const yMax = Math.max(...scatter_points.map(([x, y]) => y));
-  const min = Math.min(xMin, yMin)
-  const max = Math.max(xMax, yMax)
+
+  function idLookupFromIndex(index: number) {
+    if (index === rankedIdeas.length) return 'Centroid'
+    return rankedIdeas[index].id
+  }
+
+  const connections = new Map(rankedIdeas.map(idea => [idea.id, getStrongestConnections(idea.id)]))
+  connections.set('Centroid', getStrongestConnections('Centroid'))
 
   const options = {
     plugins: {
@@ -91,32 +114,55 @@ const BubbleChart = React.memo(({ plotData }: BubbleChartProps) => {
         display: true,
         text: "Displays the distance of each idea to the Centroid and each other."
       },
-      annotation: {
-        annotations: weightedLines
-      },
       tooltip: {
         callbacks: {
           label: function (context) {
             const dataPoint = context.raw as { x: number; y: number; label: number };
-            if (dataPoint.label == scatter_points.length - 1) {
+            if (dataPoint.label == scatterPoints.length - 1) {
               return "Centroid"
             }
-            return `Idea ${dataPoint.label + 1}: ${plotData.ideas[dataPoint.label]}`;
+            // return `Idea ${dataPoint.label + 1}: ${ideas[dataPoint.label]}`;
+            return '';
           }
         }
+      },
+      annotation: {
+        annotations: Array.from(connections.values()).map(connection => connection.asLines).flat()
       }
+    },
+    onClick: (event: ChartEvent, elements, chart: any) => {
+      if (elements.length > 0) {
+        const id = idLookupFromIndex(elements[0].index);
+        console.log(id)
+        let { connectedPointsIndices, asLines } = connections.get(id)!;
+        chart.options.plugins.annotation.annotations = asLines 
+        const selectedIdea = rankedIdeas.find(p => p.id === id);
+        chart.data.datasets[0].backgroundColor = rankedIdeas.map((idea, index) => {
+          const isConnected = connectedPointsIndices.has(idLookupFromIndex(index));
+          const isSameCluster = selectedIdea && idea.cluster_id === selectedIdea.cluster_id;
+          return isConnected 
+            ? colors[index].replace(/[\d.]+\)$/, '1)') 
+            : isSameCluster ? colors[index]
+            : '#fff';
+        });
+      } else {
+        const allStrongestConnections = Array.from(connections.values()).map(connection => connection.asLines).flat();
+        chart.options.plugins.annotation.annotations = allStrongestConnections;
+        chart.data.datasets[0].backgroundColor = colors
+      }
+      chart.update('none');
     },
     aspectRatio: 1,
     scales: {
       x: {
         type: "linear",
-        min: min,
-        max: max
+        min: -1,
+        max: 1
       },
       y: {
         type: "linear",
-        min: min,
-        max: max
+        min: -1,
+        max: 1
       },
     }
   } as ChartOptions<"bubble">;

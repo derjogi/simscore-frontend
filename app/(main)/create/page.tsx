@@ -7,6 +7,7 @@ import * as XLSX from "xlsx";
 import LZString from "lz-string";
 
 import { useSearchParams } from 'next/navigation';
+import { processIdeas } from "./actions";
 
 function CreateContent() {
   const [input, setInput] = useState("");
@@ -25,6 +26,7 @@ function CreateContent() {
 
   const [idColumn, setIdColumn] = useState<number | null>(null);
   const [dataColumn, setDataColumn] = useState<number | null>(null);
+  const [authorColumn, setAuthorColumn] = useState<number | null>(null);
 
   const handleSubmitForm = async (e: any) => {
     e.preventDefault();
@@ -35,46 +37,62 @@ function CreateContent() {
   const handleSubmitXLS = async (processedData: string[][]) => {
     handleSubmit(processedData);
   }
+
+  type IdeaInput = {
+    id?: number | string
+    author_id?: number | string
+    idea: string
+  }
+
+  type IdeaRequest = {
+    ideas: IdeaInput[]
+    advanced_features?: {
+      relationship_graph: boolean,
+      pairwise_similarity_matrix: boolean,
+      cluster_names: boolean
+    }
+  }
+
   const handleSubmit = async (ideas: string[][] | string[]) => {        
     setIsLoading(true);
 
     const filteredIdeas = Array.isArray(ideas[0]) 
-      ? (ideas as string[][]).map(row => row.filter(cell => cell !== null && cell !== undefined && String(cell).trim() !== '')).filter(row => row.length > 0)
-      : (ideas as string[]).filter(idea => idea.trim() !== '')
+      ? (ideas as string[][])
+        .map(row => row.filter(cell => cell !== null && cell !== undefined && String(cell).trim() !== ''))
+        .filter(row => row.length > 0)
+        .map(row => ({
+          id: row[0],
+          idea: row[1]
+        }))
+      : (ideas as string[]).filter(idea => idea.trim() !== '').map((idea, index) => ({
+          id: index,
+          idea: idea
+        }))
     
-    const payload = {
+    console.log('Filtered ideas: ', filteredIdeas)
+    
+    const payload: IdeaRequest = {
       ideas: filteredIdeas,
-      store_results: true,
+      advanced_features: {
+        relationship_graph: true,
+        pairwise_similarity_matrix: true,
+        cluster_names: true
+      }
     };
     
     // This is being processed with python, which goes to a separate server:
-    const processAPI = "/fastapi/process";
-  
-    fetch(processAPI, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      redirect: "follow",
-      body: JSON.stringify(payload),
-    })
-    .then((res) => {
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
-      return res.json();
-    })
-    .then((data) => {
-      console.log("Data: ", data);
-      setIsLoading(false);
-      setId(data.id);
-      const compressedData = LZString.compress(JSON.stringify(data));
-      localStorage.setItem(`sessionData_${data.id}`, compressedData);
-      router.push(`/session/${data.id}`);
-    }).catch((error) => {
-      setIsLoading(false);
-      console.error("Processing failed:", error);
-    });
+    await processIdeas(payload)
+      .then((data) => {
+        console.log("Data: ", data);
+        setIsLoading(false);
+        setId(data.id);
+        const compressedData = LZString.compress(JSON.stringify(data));
+        localStorage.setItem(`sessionData_${data.id}`, compressedData);
+        router.push(`/session/${data.id}`);
+      }).catch((error) => {
+        setIsLoading(false);
+        console.error("Processing failed:", error);
+      }).finally(() => setIsLoading(false));
   };
 
   const customTextConverter = (binary: any) => {
@@ -82,23 +100,16 @@ function CreateContent() {
     return new Promise((resolve, reject) => {
       try {
         //
-        // Read and parse workbook using XLSX, first worksheet only
-        //
-        // https://github.com/sheetjs/
-        // https://github.com/sheetjs/sheetjs#utility-functions
-        //
+        // Read and parse CSV or XLSX (first worksheet only)
         const workbook = XLSX.read(binary, { type: "array" });
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-
-        // const csv = XLSX.utils.sheet_to_csv(worksheet);
-        // resolve(csv);
 
         const json = XLSX.utils.sheet_to_json<string[]>(worksheet, {
           header: 1,
           blankrows: false,
         });
         // This will be an array of arrays, with the headers in the first array.
-        // Ask the user which of those headers (if any) they want to use as 'id', and which as the 'data'.
+        // Ask the user which of those headers (if any) they want to use as 'id', and which as the 'data' (and optionally 'author')
         const preview: string[][] = json.slice(0, 4);
         setPreviewData(preview); // Get first 4 rows (including header)
         setShowPreview(true);
@@ -133,36 +144,41 @@ function CreateContent() {
     const dataValues = data.slice(1);
     return (
       <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center">
-        <div className="bg-white p-5 rounded-lg">
-          <h2 className="text-xl mb-4">Select ID and Data Columns</h2>
-          <table className="mb-4">
-            <thead>
-              <tr>
-                {data[0].map((header: string, index: number) => (
-                  <th key={index} className="px-4 py-2">
-                    {truncateText(header)}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {dataValues.map((row: string[], rowIndex: number) => (
-                <tr key={rowIndex}>
-                  {row.map((cell: string, cellIndex: number) => (
-                    <td key={cellIndex} className="border px-4 py-2">
-                      {truncateText(cell)}
-                    </td>
+        <div className="bg-white p-5 rounded-lg max-w-[90vw] w-full mx-4">
+          <h2 className="text-xl mb-4">Select Columns</h2>
+          <div className="overflow-x-auto">
+            <table className="mb-4 w-full">
+              <thead>
+                <tr>
+                  {data[0].map((header: string, index: number) => (
+                    <th key={index} className="px-4 py-2 whitespace-nowrap">
+                      {truncateText(header)}
+                    </th>
                   ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="flex justify-evenly">
+              </thead>
+              <tbody>
+                {dataValues.map((row: string[], rowIndex: number) => (
+                  <tr key={rowIndex}>
+                    {row.map((cell: string, cellIndex: number) => (
+                      <td key={cellIndex} className="border px-4 py-2 whitespace-nowrap">
+                        {truncateText(cell)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="flex justify-evenly space-x-4">
+          <div>
+            <label className="font-medium text-gray-700 mr-2">
+              ID:
+            </label>
             <select
-              value={idColumn !== null ? idColumn.toString() : "Select a value"}
-              onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                setIdColumn(Number(e.target.value))
-              }
+              value={idColumn !== null ? idColumn.toString() : ""}
+              onChange={(e) => setIdColumn(Number(e.target.value))}
+              className="p-2 border rounded"
             >
               <option value="">Select ID Column</option>
               {headerValues.map((header: string, index: number) => (
@@ -170,12 +186,18 @@ function CreateContent() {
                   {header}
                 </option>
               ))}
-            </select>
+              </select>
+            </div>
+            <div>
+            <label className="font-medium text-gray-700 mr-2">
+              Data: 
+            </label>
             <select
-              value={dataColumn !== null ? dataColumn.toString() : "Select a alue"}
+              value={dataColumn !== null ? dataColumn.toString() : ""}
               onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                 setDataColumn(Number(e.target.value))
               }
+              className="p-2 border rounded"
             >
               <option value="">Select Data Column</option>
               {headerValues.map((header: string, index: number) => (
@@ -183,7 +205,23 @@ function CreateContent() {
                   {header}
                 </option>
               ))}
+              </select>
+            </div>
+            <div>
+            <label className="font-medium text-gray-700 mr-2">
+              Author (Optional):
+            </label>
+            <select
+              value={authorColumn !== null ? authorColumn.toString() : ""}
+              onChange={(e) => setAuthorColumn(e.target.value ? Number(e.target.value) : null)}
+              className="p-2 border rounded"
+            >
+              <option value="">Select Author Column (Optional)</option>
+              {headerValues.map((header, index) => (
+                <option key={index} value={index}>{header}</option>
+              ))}
             </select>
+          </div>
           </div>
           <div className="mt-4 flex justify-end">
             <button
@@ -203,7 +241,6 @@ function CreateContent() {
       </div>
     );
   };
-
   type IdeaValidity = {
     idea: string;
     // These are error strings, indicating what is wrong with the corresponding qualifier.
@@ -284,7 +321,7 @@ function CreateContent() {
   };
 
   function queryForIdeaValidity(idea: string, index: number) {
-    const host = process.env.SIMSCORE_API;
+    const host = process.env.NEXT_PUBLIC_SIMSCORE_API;
     const validateAPI = host + "/validate";
     const body = JSON.stringify({ idea: idea });
     console.log("Querying for idea validity: ", body);
@@ -345,11 +382,16 @@ function CreateContent() {
             if (idColumn !== null && dataColumn !== null) {
               const processedData = fullData
                 .slice(1)
-                .map((row) => [row[idColumn], row[dataColumn]])
+                .map((row) => {
+                  const entry = [row[idColumn], row[dataColumn]];
+                  if (authorColumn !== null) {
+                    entry.push(row[authorColumn]);
+                  }
+                  return entry;
+                })
                 .filter(([id, data]) => id !== undefined && data !== undefined);
               setShowPreview(false);
-              console.log(`Processed data: `, processedData)
-              handleSubmitXLS(processedData)
+              handleSubmitXLS(processedData);
             }
           }}
         />
@@ -395,7 +437,7 @@ function CreateContent() {
           </>
         ))}
 
-        <form className="space-y-2" onSubmit={handleSubmitForm}>
+        <form className={`space-y-2 ${isLoading ? 'opacity-50' : ''}`} onSubmit={handleSubmitForm}>
           <label
             htmlFor={"answer"}
             className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
@@ -415,6 +457,7 @@ function CreateContent() {
               rows: 8,
               placeholder: "Enter your answers, or upload a file here...",
               className: "!bg-white border-2 rounded-lg p-2",
+              disabled: isLoading
             }}
           />
           {/* <div className="flex items-center mb-4">
@@ -437,6 +480,7 @@ function CreateContent() {
               type="submit"
               onClick={handleSubmitForm}
               className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+              disabled={isLoading}
             >
               Process
             </button>
