@@ -9,6 +9,8 @@ import LZString from "lz-string";
 import { useSearchParams } from 'next/navigation';
 import { processIdeas } from "./actions";
 
+export const maxDuration = 120;
+
 function CreateContent() {
   const [input, setInput] = useState("");
   const [storeResults, setStoreResults] = useState(false);
