@@ -1,6 +1,6 @@
 'use server'
 
-import { headers } from 'next/headers'
+export const maxDuration = 120;
 
 type IdeaInput = {
   id?: number | string
