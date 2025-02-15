@@ -1,7 +1,5 @@
 'use server'
 
-export const maxDuration = 120;
-
 type IdeaInput = {
   id?: number | string
   author_id?: number | string
